@@ -18,6 +18,9 @@ Use this utility to view/edit your Wonka RuleTree.
 <div class="row">
 
     <div class="col-md-6">
+        <div style="margin-top:20px">Rules File URL:</div>
+        <RadzenTextBox Style="margin-bottom: 20px; width: 600px" Change="@(args => ChooseRulesUrlChange(args, "TextBox"))" Placeholder="@currRulesUrl" MaxLength="1024"/>
+        <br />
         <RadzenTree Data="@entries" Expand="@LoadFiles" Change="@SelectRow">
             <RadzenTreeLevel Text="@GetTextForNode" />
         </RadzenTree>
@@ -40,7 +43,7 @@ Use this utility to view/edit your Wonka RuleTree.
                 <RadzenTabsItem Text="Add Rule">
                     <RadzenCard Style="padding: 20px;">
                         <br />
-                        <h4>Rule ID:</h4>
+                        <h4>Rule Desc Code:</h4>
                         <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleIdHandler(args, "TextBox"))" />
                         <br />
                         <h4>Select the parent RuleSet:</h4>
@@ -70,18 +73,37 @@ Use this utility to view/edit your Wonka RuleTree.
                         <h4>Value2/MaxValue:</h4>
                         <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleValue2Handler(args, "TextBox"))" />
                         <br />
-                        <RadzenButton Text="OK" Click="@((args) => AddRuleHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+                        <RadzenButton Text="Add Rule" Click="@((args) => AddRuleHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                     </RadzenCard>
                 </RadzenTabsItem>
                 <RadzenTabsItem Text="Add RuleSet">
                     <RadzenCard Style="padding: 20px;">
                         <br />
-                        <h4>Rule Set ID:</h4>
-                        <RadzenTextBox Style="margin-bottom: 20px" />
-                        <br />
                         <h4>Rule Set Description:</h4>
-                        <RadzenTextBox Style="margin-bottom: 20px" />
+                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleSetDescHandler(args, "TextBox"))" />
                         <br />
+                        <h4>Select the parent RuleSet:</h4>
+                        <RadzenDropDown AllowClear="true" TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" Data="@(allRuleSetNames.Where(s => s != "Root").Select(s => new { RSName = s }))" TextProperty="RSName" ValueProperty="RSName" Style="margin-bottom: 20px" Change="@(args => AddRuleSetTargetRSChange(args, @currRuleSet.Description))" />
+                        <br />
+                        <h4>Select the Rule type:</h4>
+                        <br />
+                        <RadzenSelectBar @bind-Value="addRuleSetOpChoice" TValue="int" Change="@((args) => AddRuleSetOpChange(args, "SelectBar with single selection"))" Style="margin-bottom: 20px;">
+                            <Items>
+                                <RadzenSelectBarItem Text="And" Value="1" />
+                                <RadzenSelectBarItem Text="Or" Value="2" />
+                            </Items>
+                        </RadzenSelectBar>
+                        <h4>Select the Rule type:</h4>
+                        <br />
+                        <RadzenSelectBar @bind-Value="addRuleSetErrLvlChoice" TValue="int" Change="@((args) => AddRuleSetSeverityChange(args, "SelectBar with single selection"))" Style="margin-bottom: 20px;">
+                            <Items>
+                                <RadzenSelectBarItem Text="Warning" Value="1" />
+                                <RadzenSelectBarItem Text="Severe" Value="2" />
+                            </Items>
+                        </RadzenSelectBar>
+                        <br />
+                        <br />
+                        <RadzenButton Text="Add RuleSet" Click="@((args) => AddRuleSetHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                     </RadzenCard>
                 </RadzenTabsItem>
             </Tabs>
@@ -104,9 +126,16 @@ Use this utility to view/edit your Wonka RuleTree.
 	string           addRuleValue2     = "";
 	IEnumerable<int> addRuleChoice     = new int[] { 1 };
 
+	string           addRuleSetDesc         = "";
+	string           addRuleSetTypeNum      = "";
+	string           addRuleSetErrLvlNum    = "";
+	IEnumerable<int> addRuleSetOpChoice     = new int[] { 1 };
+	IEnumerable<int> addRuleSetErrLvlChoice = new int[] { 1 };
+
 	string rules = null;
 
 	int    currRuleSetId = 0;
+	string currRulesUrl  = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
 	string currRuleName  = "";
 	string currErrMsg    = "";
 
@@ -139,9 +168,7 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		using (var client = new System.Net.Http.HttpClient())
 		{
-			string sIpfsUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
-
-			rules = client.GetStringAsync(sIpfsUrl).Result;
+			rules = client.GetStringAsync(currRulesUrl).Result;
 		}
 
 		rulesEngine = new WonkaBizRulesEngine(new StringBuilder(rules));
@@ -173,7 +200,43 @@ Use this utility to view/edit your Wonka RuleTree.
 				   .ForEach(x => opAndRuleSetNames.Add(x.GetRuleSetDescription()));
 	}
 
-	void AddRuleHandler(MouseEventArgs args, string buttonName)
+	#region Add RuleSet Tab Handlers
+
+	void AddRuleSetDescHandler(string value, string name)
+	{
+		addRuleSetDesc = value;
+
+		StateHasChanged();
+	}
+
+	void AddRuleSetSeverityChange(IEnumerable<int> value, string name)
+	{
+		addRuleSetErrLvlNum = string.Join(", ", value);
+
+		StateHasChanged();
+	}
+
+	void AddRuleSetOpChange(IEnumerable<int> value, string name)
+	{
+		addRuleSetTypeNum = string.Join(", ", value);
+
+		StateHasChanged();
+	}
+
+	void AddRuleSetTargetRSChange(object value, string name)
+	{
+		var oTargetRS = value is IEnumerable<object> ? string.Join(", ", (IEnumerable<object>)value) : value;
+
+		/*
+		string sTargetRSDesc = (string) oTargetRS;
+
+		addRuleSetId = FindRuleSet(sTargetRSDesc).RuleSetId;
+		*/
+
+		StateHasChanged();
+	}
+
+	void AddRuleSetHandler(MouseEventArgs args, string buttonName)
 	{
 		currRuleSetId = FindRuleById(currRuleName).ParentRuleSetId;
 
@@ -182,9 +245,9 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		try
 		{
-			TargetRuleSet.AddNewRule(rulesEngine.RefEnvHandle, addRuleDesc, addRuleTargetAttr, addRuleTypeNum, addRuleValue1, addRuleValue2);
-
-			ShowRuleAddSuccessDialog().ConfigureAwait(false);
+			/*
+			 * NOTE: Do work here
+			 */
 
 			StateHasChanged();
 		}
@@ -199,6 +262,10 @@ Use this utility to view/edit your Wonka RuleTree.
 			ShowErrorDialog().ConfigureAwait(false);
 		}
 	}
+
+	#endregion
+
+	#region Add Rule Tab Handlers
 
 	void AddRuleIdHandler(string value, string name)
 	{
@@ -246,6 +313,40 @@ Use this utility to view/edit your Wonka RuleTree.
 		addRuleValue2 = value;
 
 		StateHasChanged();
+	}
+
+	void AddRuleHandler(MouseEventArgs args, string buttonName)
+	{
+		currRuleSetId = FindRuleById(currRuleName).ParentRuleSetId;
+
+		// var TargetRuleSet = rulesEngine.FindRuleSet(currRuleSetId);
+		var TargetRuleSet = rulesEngine.FindRuleSet(addRuleSetId);
+
+		try
+		{
+			TargetRuleSet.AddNewRule(rulesEngine.RefEnvHandle, addRuleDesc, addRuleTargetAttr, addRuleTypeNum, addRuleValue1, addRuleValue2);
+
+			ShowRuleAddSuccessDialog().ConfigureAwait(false);
+
+			StateHasChanged();
+		}
+		catch (System.Data.DataException ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+	}
+
+	#endregion
+
+	void ChooseRulesUrlChange(string value, string name)
+	{
+		// events.Add(DateTime.Now, $"{name} value changed");
 	}
 
 	WonkaBizRuleSet FindRuleSet (int pnRuleSetId)
@@ -298,6 +399,15 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		if (isRuleSet)
 		{
+			string sRuleSetOp = "";
+
+			if (opAndRuleSetNames.Contains(name))
+				sRuleSetOp = " - [AND]";
+			else
+				sRuleSetOp = " - [OR]";
+
+			builder.AddContent(4, sRuleSetOp);
+
 			if (errorRuleSetNames.Contains(name) || warningRuleSetNames.Contains(name))
 			{
 				string sIcon = "";
@@ -313,20 +423,9 @@ Use this utility to view/edit your Wonka RuleTree.
 					sIcon = "star_half";
 				*/
 
-				builder.OpenComponent<RadzenIcon>(4);
-				builder.AddAttribute(5, "Icon", sIcon);
+				builder.OpenComponent<RadzenIcon>(5);
+				builder.AddAttribute(6, "Icon", sIcon);
 				builder.CloseComponent();
-			}
-			else
-			{
-				string sRuleSetOp = "";
-
-				if (opAndRuleSetNames.Contains(name))
-					sRuleSetOp = " - (AND)";
-				else
-					sRuleSetOp = " - (OR)";
-
-				builder.AddContent(4, sRuleSetOp);
 			}
 		}
 	};
