@@ -169,6 +169,8 @@ Use this utility to view/edit your Wonka RuleTree.
 		{
 			TargetRuleSet.AddNewRule(rulesEngine.RefEnvHandle, addRuleDesc, addRuleTargetAttr, addRuleTypeNum, addRuleValue1, addRuleValue2);
 
+			ShowRuleAddSuccessDialog().ConfigureAwait(false);
+
 			StateHasChanged();
 		}
 		catch (System.Data.DataException ex)
@@ -321,7 +323,7 @@ Use this utility to view/edit your Wonka RuleTree.
 	void SelectRow(TreeEventArgs args)
 	{
 		if (args.Text.Contains(":"))
-		    currRuleName = args.Text.Split(":")[1];
+			currRuleName = args.Text.Split(":")[1];
 
 		details.Clear();
 		details["Formula"] = FindRuleById(currRuleName).GetRuleDetails();
@@ -351,7 +353,7 @@ Use this utility to view/edit your Wonka RuleTree.
 			</div>
 		</RadzenCard>);
 
-	async Task ShowRuleAddSuccessDialog() => await dialogService.OpenAsync("WHOOPSEE!  You made a mistake.", ds =>
+	async Task ShowRuleAddSuccessDialog() => await dialogService.OpenAsync("SUCCESS!", ds =>
 		@<RadzenCard Style="padding: 20px;">
 			<p Style="margin-bottom: 10px;">Rule added successfully!  Please now close and expand the RuleSet node in order to refresh and observe the addition of the new rule.</p>
 			<div class="row">
