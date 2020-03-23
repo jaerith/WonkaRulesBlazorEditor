@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Radzen.Blazor" Version="2.3.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="WonkaSystem">
+      <HintPath>..\packages\wonka\WonkaSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="Wonka.Eth">
+      <HintPath>..\packages\wonka\Wonka.Eth.dll</HintPath>
+    </Reference>
+    <Reference Include="Wonka.Storage">
+      <HintPath>..\packages\wonka\Wonka.Storage.dll</HintPath>
+    </Reference>
+    <Reference Include="Wonka.BizRulesEngine">
+      <HintPath>..\packages\wonka\Wonka.BizRulesEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="Wonka.IpfsW">
+      <HintPath>..\packages\wonka\Wonka.IpfsW.dll</HintPath>
+    </Reference>
+    <Reference Include="Wonka.MetaData">
+      <HintPath>..\packages\wonka\Wonka.MetaData.dll</HintPath>
+    </Reference>
+    <Reference Include="Wonka.Product">
+      <HintPath>..\packages\wonka\Wonka.Product.dll</HintPath>
+    </Reference>
+  </ItemGroup>  
+  
+  <ItemGroup>
+    <Folder Include="Extensions\" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,366 @@
+﻿@page "/"
+@page "/dropdown"
+@page "/selectbar"
+@page "/splitbutton"
+@page "/tree"
+@page "/tabs"
+
+@inject DialogService  dialogService
+
+<RadzenDialog />
+
+<h1>Rule Tree Editor</h1>
+
+Use this utility to view/edit your Wonka RuleTree.
+
+<br />
+
+<div class="row">
+
+    <div class="col-md-6">
+        <RadzenTree Data="@entries" Expand="@LoadFiles" Change="@SelectRow">
+            <RadzenTreeLevel Text="@GetTextForNode" />
+        </RadzenTree>
+    </div>
+
+    <div class="col-md-6">
+        <RadzenTabs>
+            <Tabs>
+                <RadzenTabsItem Text="Details">
+                    <RadzenCard style="overflow: auto;height:500px;">
+                        <div class="row">
+                            @foreach (var e in details.OrderByDescending(i => i.Key))
+                            {
+                                @e.Value
+                                <br />
+                            }
+                        </div>
+                    </RadzenCard>
+                </RadzenTabsItem>
+                <RadzenTabsItem Text="Add Rule">
+                    <RadzenCard Style="padding: 20px;">
+                        <br />
+                        <h4>Rule ID:</h4>
+                        <!--<RadzenTextBox Style="margin-bottom: 20px" Change="@(args => Change(args, "TextBox"))" /> -->
+                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleIdHandler(args, "TextBox"))" />
+                        <!--<p Style="margin-bottom: 10px;">Add a new rule under RuleSet: [@FindRuleById(currRuleName).ParentRuleSetId]</p> -->
+                        <p Style="margin-bottom: 10px;">Select the target Attribute:</p>
+                        <br />
+                        <RadzenDropDown AllowClear="true" TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" Data="@(rulesEngine.RefEnvHandle.AttrCache.Select(a => new { AName = a.AttrName }))" TextProperty="AName" ValueProperty="AName" Style="margin-bottom: 20px" Change="@(args => AddRuleTargetAttrChange(args, @currRuleName))" />
+                        <br />
+                        <p Style="margin-bottom: 10px;">Select the Rule type:</p>
+                        <br />
+                        <RadzenSelectBar @bind-Value="addRuleChoice" TValue="int" Change="@((args) => AddRuleTargetTypeChange(args, "SelectBar with single selection"))" Style="margin-bottom: 20px;">
+                            <Items>
+                                <RadzenSelectBarItem Text="ArithmeticLimitRule" Value="1" />
+                                <!--<RadzenSelectBarItem Text="ArithmeticRule" Value="2" />-->
+                                <RadzenSelectBarItem Text="AssignmentRule" Value="3" />
+                                <!--<RadzenSelectBarItem Text="CustomOperatorRule" Value="4" /> -->
+                                <RadzenSelectBarItem Text="DateLimitRule" Value="5" />
+                                <RadzenSelectBarItem Text="DomainRule" Value="6" />
+								<RadzenSelectBarItem Text="PopulatedRule" Value="7" />
+                            </Items>
+                        </RadzenSelectBar>
+                        <br />
+                        <h4>Value1/MinValue:</h4>
+                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleValue1Handler(args, "TextBox"))" />
+                        <br />
+                        <h4>Value2/MaxValue:</h4>
+                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleValue2Handler(args, "TextBox"))" />
+                        <br />
+                        <RadzenButton Text="OK" Click="@((args) => AddRuleHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+                    </RadzenCard>
+                </RadzenTabsItem>
+            </Tabs>
+        </RadzenTabs>
+    </div>
+</div>
+
+<br />
+
+@code {
+
+	const string CONST_INFURA_IPFS_GATEWAY_URL = "https://ipfs.infura.io/ipfs/";
+	const string CONST_RULES_FILE_IPFS_KEY     = "QmXcsGDQthxbGW8C3Sx9r4tV9PGSj4MxJmtXF7dnXN5XUT";
+
+	string           addRuleDesc       = "";
+	string           addRuleTargetAttr = "";
+	string           addRuleTypeNum    = "";
+	string           addRuleValue1     = "";
+	string           addRuleValue2     = "";
+	IEnumerable<int> addRuleChoice     = new int[] { 1 };
+
+	string rules = null;
+
+	int    currRuleSetId = 0;
+	string currRuleName  = "";
+	string currErrMsg    = "";
+
+	WonkaBizRulesEngine rulesEngine = null;
+
+	WonkaBizRuleSet currRuleSet = null;
+
+	IEnumerable<string> entries = null;
+
+	static List<string> allRuleSetNames     = null;
+	static List<string> errorRuleSetNames   = null;
+	static List<string> warningRuleSetNames = null;
+	static List<string> opAndRuleSetNames   = null;
+
+	Dictionary<string, string> details = new Dictionary<string, string>();
+
+	protected override void OnInitialized()
+	{
+		WonkaRefEnvironment WonkaRefEnv =
+			WonkaRefEnvironment.CreateInstance(false, new Wonka.BizRulesEngine.Samples.WonkaBreMetadataTestSource());
+
+		WonkaRefAttr AccountIDAttr       = WonkaRefEnv.GetAttributeByAttrName("BankAccountID");
+		WonkaRefAttr AccountNameAttr     = WonkaRefEnv.GetAttributeByAttrName("BankAccountName");
+		WonkaRefAttr AccountStsAttr      = WonkaRefEnv.GetAttributeByAttrName("AccountStatus");
+		WonkaRefAttr AccountCurrValAttr  = WonkaRefEnv.GetAttributeByAttrName("AccountCurrValue");
+		WonkaRefAttr AccountTypeAttr     = WonkaRefEnv.GetAttributeByAttrName("AccountType");
+		WonkaRefAttr AccountCurrencyAttr = WonkaRefEnv.GetAttributeByAttrName("AccountCurrency");
+		WonkaRefAttr RvwFlagAttr         = WonkaRefEnv.GetAttributeByAttrName("AuditReviewFlag");
+		WonkaRefAttr CreationDtAttr      = WonkaRefEnv.GetAttributeByAttrName("CreationDt");
+
+		using (var client = new System.Net.Http.HttpClient())
+		{
+			string sIpfsUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
+
+			rules = client.GetStringAsync(sIpfsUrl).Result;
+		}
+
+		rulesEngine = new WonkaBizRulesEngine(new StringBuilder(rules));
+
+		currRuleSet = rulesEngine.RuleTreeRoot;
+
+		entries = new List<string>() { currRuleSet.Description };
+
+		allRuleSetNames     = new List<string>();
+		errorRuleSetNames   = new List<string>();
+		warningRuleSetNames = new List<string>();
+		opAndRuleSetNames   = new List<string>();
+
+		rulesEngine.AllRuleSets.ForEach(x => allRuleSetNames.Add(x.Description));
+
+		rulesEngine.AllRuleSets
+				   .Where(x => (x.ErrorSeverity == RULE_SET_ERR_LVL.ERR_LVL_SEVERE) && (x.ChildRuleSets.Count == 0))
+				   .ToList()
+				   .ForEach(x => errorRuleSetNames.Add(x.GetRuleSetDescription()));
+
+		rulesEngine.AllRuleSets
+				   .Where(x => (x.ErrorSeverity == RULE_SET_ERR_LVL.ERR_LVL_WARNING) && (x.ChildRuleSets.Count == 0))
+				   .ToList()
+				   .ForEach(x => warningRuleSetNames.Add(x.GetRuleSetDescription()));
+
+		rulesEngine.AllRuleSets
+				   .Where(x => (x.RulesEvalOperator == RULE_OP.OP_AND) && (x.ChildRuleSets.Count > 0))
+				   .ToList()
+				   .ForEach(x => opAndRuleSetNames.Add(x.GetRuleSetDescription()));
+	}
+
+	void AddRuleHandler(MouseEventArgs args, string buttonName)
+	{
+		currRuleSetId = FindRuleById(currRuleName).ParentRuleSetId;
+
+		var TargetRuleSet = rulesEngine.FindRuleSet(currRuleSetId);
+
+		try
+		{
+			TargetRuleSet.AddNewRule(rulesEngine.RefEnvHandle, addRuleDesc, addRuleTargetAttr, addRuleTypeNum, addRuleValue1, addRuleValue2);
+
+			StateHasChanged();
+		}
+		catch (System.Data.DataException ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+	}
+
+	void AddRuleIdHandler(string value, string name)
+	{
+		addRuleDesc = value;
+
+		StateHasChanged();
+	}
+
+	void AddRuleTargetAttrChange(object value, string name)
+	{
+		var oTargetAttr = value is IEnumerable<object> ? string.Join(", ", (IEnumerable<object>)value) : value;
+
+		addRuleTargetAttr = (string) oTargetAttr;
+
+		StateHasChanged();
+	}
+
+	void AddRuleTargetTypeChange(IEnumerable<int> value, string name)
+	{
+		addRuleTypeNum = string.Join(", ", value);
+
+		StateHasChanged();
+	}
+
+	void AddRuleValue1Handler(string value, string name)
+	{
+		addRuleValue1 = value;
+
+		StateHasChanged();
+	}
+
+	void AddRuleValue2Handler(string value, string name)
+	{
+		addRuleValue2 = value;
+
+		StateHasChanged();
+	}
+
+	WonkaBizRuleSet FindRuleSet (int pnRuleSetId)
+	{
+		return rulesEngine.FindRuleSet(pnRuleSetId);
+	}
+
+	WonkaBizRuleSet FindRuleSet(string psSoughtDescName)
+	{
+		return rulesEngine.FindRuleSet(psSoughtDescName);
+	}
+
+	WonkaBizRule FindRuleById(string psSoughtId)
+	{
+		return rulesEngine.FindRuleById(psSoughtId);
+	}
+
+	string GetTextForNode(object data)
+	{
+		var name = (string)data;
+
+		return name;
+	}
+
+	public bool IsRuleSet(string psName)
+	{
+		var FoundRuleSet = FindRuleSet((string)psName);
+
+		return FoundRuleSet.IsValidRuleSet();
+	}
+
+	RenderFragment<RadzenTreeItem> RuleSetOrRuleTemplate = (context) => builder =>
+	{
+		string name = context.Value as string;
+
+		bool isRuleSet = allRuleSetNames.Contains(name);
+
+		builder.OpenComponent<RadzenIcon>(0);
+		builder.AddAttribute(1, "Icon", isRuleSet ? "label" : "code");
+
+		if (!isRuleSet)
+		{
+			builder.AddAttribute(2, "Style", "margin-left: 24px");
+		}
+
+		builder.CloseComponent();
+
+		// Append the current item text
+		builder.AddContent(3, context.Text);
+
+		if (isRuleSet)
+		{
+			string sIcon = "";
+
+			if (errorRuleSetNames.Contains(name))
+				sIcon = "error";
+			else if (warningRuleSetNames.Contains(name))
+				sIcon = "warning";
+			else if (opAndRuleSetNames.Contains(name))
+				sIcon = "star_border";
+			else
+				sIcon = "star_half";
+
+			builder.OpenComponent<RadzenIcon>(4);
+			builder.AddAttribute(5, "Icon", sIcon);
+			builder.CloseComponent();
+		}
+	};
+
+	void LoadFiles(TreeExpandEventArgs args)
+	{
+		var currRuleSetName = args.Value as string;
+
+		List<string> CurrChildren = new List<string>();
+
+		currRuleSet = FindRuleSet(currRuleSetName);
+
+		currRuleSet.EvaluativeRules.ToList().ForEach(x => CurrChildren.Add(x.GetRuleDescription()));
+		currRuleSet.AssertiveRules.ToList().ForEach(x => CurrChildren.Add(x.GetRuleDescription()));
+		currRuleSet.ChildRuleSets.ToList().ForEach(x => CurrChildren.Add(x.GetRuleSetDescription()));
+
+		RemoveNulls(CurrChildren);
+
+		args.Children.Data = CurrChildren;
+		args.Children.Text = GetTextForNode;
+		args.Children.HasChildren = (currName) => IsRuleSet((string)currName);
+
+		args.Children.Template = RuleSetOrRuleTemplate;
+	}
+
+	void RemoveNulls(List<string> currList)
+	{
+		currList.RemoveAll(x => x == null);
+	}
+
+	void Close(dynamic result)
+	{
+		StateHasChanged();
+	}
+
+	void SelectRow(TreeEventArgs args)
+	{
+		if (args.Text.Contains(":"))
+		    currRuleName = args.Text.Split(":")[1];
+
+		details.Clear();
+		details["Formula"] = FindRuleById(currRuleName).GetRuleDetails();
+
+		StateHasChanged();
+	}
+
+	async Task ShowSimpleDialog() => await dialogService.OpenAsync("Rule Properties", ds =>
+		@<RadzenCard Style="padding: 20px;">
+			<p Style="margin-bottom: 10px;">Rule: @FindRuleById(currRuleName)).GetRuleDialogContent()</p>
+			<div class="row">
+				<div class="col-md-12">
+					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
+					<!--<RadzenButton Text="Cancel" Click="()=> ds.Close(false)" ButtonStyle="ButtonStyle.Secondary" Style="margin-bottom: 10px; width: 150px" />-->
+				</div>
+			</div>
+		</RadzenCard>);
+
+
+	async Task ShowErrorDialog() => await dialogService.OpenAsync("WHOOPSEE!  You made a mistake.", ds =>
+		@<RadzenCard Style="padding: 20px;">
+			<p Style="margin-bottom: 10px;">@currErrMsg</p>
+			<div class="row">
+				<div class="col-md-12">
+					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
+				</div>
+			</div>
+		</RadzenCard>);
+
+	async Task ShowRuleAddSuccessDialog() => await dialogService.OpenAsync("WHOOPSEE!  You made a mistake.", ds =>
+		@<RadzenCard Style="padding: 20px;">
+			<p Style="margin-bottom: 10px;">Rule added successfully!  Please now close and expand the RuleSet node in order to refresh and observe the addition of the new rule.</p>
+			<div class="row">
+				<div class="col-md-12">
+					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
+				</div>
+			</div>
+		</RadzenCard>);
+
+
+}
+
