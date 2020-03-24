@@ -40,7 +40,7 @@ Use this utility to view/edit your Wonka RuleTree.
                         </div>
                     </RadzenCard>
                 </RadzenTabsItem>
-                <RadzenTabsItem Text="Add Rule">
+                <RadzenTabsItem Text="Add Standard Rule">
                     <RadzenCard Style="padding: 20px;">
                         <br />
                         <h4>Rule Desc Code:</h4>
@@ -50,11 +50,9 @@ Use this utility to view/edit your Wonka RuleTree.
                         <RadzenDropDown AllowClear="true" TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" Data="@(allRuleSetNames.Where(s => s != "Root").Select(s => new { RSName = s }))" TextProperty="RSName" ValueProperty="RSName" Style="margin-bottom: 20px" Change="@(args => AddRuleTargetRSChange(args, @currRuleSet.Description))" />
                         <br />
                         <h4>Select the target Attribute:</h4>
-                        <br />
                         <RadzenDropDown AllowClear="true" TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" Data="@(rulesEngine.RefEnvHandle.AttrCache.Select(a => new { AName = a.AttrName }))" TextProperty="AName" ValueProperty="AName" Style="margin-bottom: 20px" Change="@(args => AddRuleTargetAttrChange(args, @currRuleSet.Description))" />
                         <br />
                         <h4>Select the Rule type:</h4>
-                        <br />
                         <RadzenSelectBar @bind-Value="addRuleChoice" TValue="int" Change="@((args) => AddRuleTargetTypeChange(args, "SelectBar with single selection"))" Style="margin-bottom: 20px;">
                             <Items>
                                 <RadzenSelectBarItem Text="ArithmeticLimitRule" Value="1" />
@@ -66,6 +64,9 @@ Use this utility to view/edit your Wonka RuleTree.
                                 <RadzenSelectBarItem Text="PopulatedRule" Value="7" />
                             </Items>
                         </RadzenSelectBar>
+                        <br />
+                        <h4>Apply the NOT operator:</h4>
+                        <RadzenCheckBox @bind-Value="@addRuleNotOp" Style="margin-bottom: 20px" TValue="bool" Change="@(args => AddRuleNotOpHandler(args, "CheckBox1 CheckBox"))" />
                         <br />
                         <h4>Value1/MinValue:</h4>
                         <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleValue1Handler(args, "TextBox"))" />
@@ -118,6 +119,7 @@ Use this utility to view/edit your Wonka RuleTree.
 	const string CONST_INFURA_IPFS_GATEWAY_URL = "https://ipfs.infura.io/ipfs/";
 	const string CONST_RULES_FILE_IPFS_KEY     = "QmXcsGDQthxbGW8C3Sx9r4tV9PGSj4MxJmtXF7dnXN5XUT";
 
+	bool             addRuleNotOp      = false;
 	int              addRuleSetId      = 0;
 	string           addRuleDesc       = "";
 	string           addRuleTargetAttr = "";
@@ -238,18 +240,19 @@ Use this utility to view/edit your Wonka RuleTree.
 
 	void AddRuleSetHandler(MouseEventArgs args, string buttonName)
 	{
-		currRuleSetId = FindRuleById(currRuleName).ParentRuleSetId;
-
-		// var TargetRuleSet = rulesEngine.FindRuleSet(currRuleSetId);
-		var TargetRuleSet = rulesEngine.FindRuleSet(addRuleSetId);
+		var ParentRuleSet = rulesEngine.FindRuleSet(addRuleSetId);
 
 		try
 		{
 			/*
-			 * NOTE: Do work here
-			 */
+			 * NOTE: Does not work
+			 * 
+			ParentRuleSet.AddNewRuleSet(addRuleSetDesc, addRuleSetTypeNum, addRuleSetErrLvlNum);
+
+			ShowRuleSetAddSuccessDialog().ConfigureAwait(false);
 
 			StateHasChanged();
+			 */
 		}
 		catch (System.Data.DataException ex)
 		{
@@ -280,6 +283,12 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		addRuleTargetAttr = (string) oTargetAttr;
 
+		StateHasChanged();
+	}
+
+	void AddRuleNotOpHandler(bool? value, string name)
+	{
+		// events.Add(DateTime.Now, $"{name} value changed to {value}");
 		StateHasChanged();
 	}
 
@@ -324,7 +333,7 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		try
 		{
-			TargetRuleSet.AddNewRule(rulesEngine.RefEnvHandle, addRuleDesc, addRuleTargetAttr, addRuleTypeNum, addRuleValue1, addRuleValue2);
+			TargetRuleSet.AddNewRule(rulesEngine.RefEnvHandle, addRuleDesc, addRuleTargetAttr, addRuleTypeNum, addRuleValue1, addRuleValue2, addRuleNotOp);
 
 			ShowRuleAddSuccessDialog().ConfigureAwait(false);
 
@@ -498,7 +507,7 @@ Use this utility to view/edit your Wonka RuleTree.
 
 	async Task ShowRuleAddSuccessDialog() => await dialogService.OpenAsync("SUCCESS!", ds =>
 		@<RadzenCard Style="padding: 20px;">
-			<p Style="margin-bottom: 10px;">Rule added successfully!  Please now close and expand the RuleSet node in order to refresh and observe the addition of the new rule.</p>
+			<p Style="margin-bottom: 10px;">Rule added successfully!  Please now close and expand the RuleSet node in order to refresh and observe the addition of the new Rule.</p>
 			<div class="row">
 				<div class="col-md-12">
 					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
@@ -506,6 +515,15 @@ Use this utility to view/edit your Wonka RuleTree.
 			</div>
 		</RadzenCard>);
 
+	async Task ShowRuleSetAddSuccessDialog() => await dialogService.OpenAsync("SUCCESS!", ds =>
+		@<RadzenCard Style="padding: 20px;">
+			<p Style="margin-bottom: 10px;">RuleSet added successfully!  Please now close and expand the parent RuleSet node in order to refresh and observe the addition of the new RuleSet.</p>
+			<div class="row">
+				<div class="col-md-12">
+					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
+				</div>
+			</div>
+		</RadzenCard>);
 
 }
 

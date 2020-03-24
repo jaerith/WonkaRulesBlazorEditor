@@ -16,7 +16,8 @@ namespace WonkaRulesBlazorEditor.Extensions
 {
     public static class BlazorAppWonkaExtensions
     {
-		private static int mnRuleCounter = 10000;
+		private static int mnRuleCounter    = 100000;
+		private static int mnRuleSetCounter = 200000;
 
 		public static void AddNewRule(this WonkaBizRuleSet poRuleSet,
 			                           WonkaRefEnvironment poRefEnv,
@@ -24,7 +25,8 @@ namespace WonkaRulesBlazorEditor.Extensions
 													string psAddRuleTargetAttr,
 													string psAddRuleTypeNum,
 													string psAddRuleValue1,
-													string psAddRuleValue2)
+													string psAddRuleValue2,
+													  bool pbAddRuleNotOp = false)
 		{
 			int nRuleTypeNum = Int32.Parse(psAddRuleTypeNum);
 
@@ -133,10 +135,44 @@ namespace WonkaRulesBlazorEditor.Extensions
 			if (NewRule != null)
 			{
 				if (!String.IsNullOrEmpty(psAddRuleDesc))
-				    NewRule.DescRuleId = psAddRuleDesc;
+				{
+					NewRule.DescRuleId  = psAddRuleDesc;
+				}
+
+				NewRule.NotOperator = pbAddRuleNotOp;
 
 				poRuleSet.AddRule(NewRule);
 			}
+		}
+
+        public static void AddNewRuleSet(this WonkaBizRuleSet poRuleSet,			                           
+			                                           string psAddRuleSetDesc,
+													   string psAddRuleSetTypeNum,
+													   string psAddRuleSetErrorLvlNum)
+		{
+			int nRuleSetTypeNum   = Int32.Parse(psAddRuleSetTypeNum);
+			int nRuleSetErrLvlNum = Int32.Parse(psAddRuleSetErrorLvlNum);
+
+			WonkaBizRuleSet NewRuleSet = null;
+
+			RULE_OP          rulesOp  = RULE_OP.OP_NONE;
+			RULE_SET_ERR_LVL errLevel = RULE_SET_ERR_LVL.ERR_LVL_NONE;
+
+			if (nRuleSetTypeNum == 1)
+				rulesOp = RULE_OP.OP_AND;
+			else
+				rulesOp = RULE_OP.OP_OR;
+
+			if (nRuleSetErrLvlNum == 1)
+				errLevel = RULE_SET_ERR_LVL.ERR_LVL_WARNING;
+			else
+				errLevel = RULE_SET_ERR_LVL.ERR_LVL_SEVERE;
+
+			NewRuleSet = new WonkaBizRuleSet(mnRuleSetCounter++);
+			NewRuleSet.RulesEvalOperator = rulesOp;
+			NewRuleSet.ErrorSeverity     = errLevel;
+
+			poRuleSet.AddChildRuleSet(NewRuleSet);
 		}
 
 		public static WonkaBizRuleSet FindRuleSet(this WonkaBizRulesEngine rulesEngine, int pnTargetRuleSetId)
