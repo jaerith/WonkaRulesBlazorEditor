@@ -145,10 +145,10 @@ namespace WonkaRulesBlazorEditor.Extensions
 			}
 		}
 
-        public static void AddNewRuleSet(this WonkaBizRuleSet poRuleSet,			                           
-			                                           string psAddRuleSetDesc,
-													   string psAddRuleSetTypeNum,
-													   string psAddRuleSetErrorLvlNum)
+        public static WonkaBizRuleSet AddNewRuleSet(this WonkaBizRuleSet poRuleSet,			                           
+			                                                      string psAddRuleSetDesc,
+													              string psAddRuleSetTypeNum,
+													              string psAddRuleSetErrorLvlNum)
 		{
 			int nRuleSetTypeNum   = Int32.Parse(psAddRuleSetTypeNum);
 			int nRuleSetErrLvlNum = Int32.Parse(psAddRuleSetErrorLvlNum);
@@ -157,6 +157,9 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 			RULE_OP          rulesOp  = RULE_OP.OP_NONE;
 			RULE_SET_ERR_LVL errLevel = RULE_SET_ERR_LVL.ERR_LVL_NONE;
+
+			if (String.IsNullOrEmpty(psAddRuleSetDesc))
+				throw new DataException("ERROR!  Cannot add RuleSet without a description.");
 
 			if (nRuleSetTypeNum == 1)
 				rulesOp = RULE_OP.OP_AND;
@@ -168,11 +171,14 @@ namespace WonkaRulesBlazorEditor.Extensions
 			else
 				errLevel = RULE_SET_ERR_LVL.ERR_LVL_SEVERE;
 
-			NewRuleSet = new WonkaBizRuleSet(mnRuleSetCounter++);
+			NewRuleSet = new WonkaBizRuleSet(mnRuleSetCounter++) { Description = psAddRuleSetDesc };
+
 			NewRuleSet.RulesEvalOperator = rulesOp;
 			NewRuleSet.ErrorSeverity     = errLevel;
 
 			poRuleSet.AddChildRuleSet(NewRuleSet);
+
+			return NewRuleSet;
 		}
 
 		public static WonkaBizRuleSet FindRuleSet(this WonkaBizRulesEngine rulesEngine, int pnTargetRuleSetId)

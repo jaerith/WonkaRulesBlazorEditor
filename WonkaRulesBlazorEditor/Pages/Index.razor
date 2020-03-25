@@ -84,7 +84,7 @@ Use this utility to view/edit your Wonka RuleTree.
                         <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleSetDescHandler(args, "TextBox"))" />
                         <br />
                         <h4>Select the parent RuleSet:</h4>
-                        <RadzenDropDown AllowClear="true" TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" Data="@(allRuleSetNames.Where(s => s != "Root").Select(s => new { RSName = s }))" TextProperty="RSName" ValueProperty="RSName" Style="margin-bottom: 20px" Change="@(args => AddRuleSetTargetRSChange(args, @currRuleSet.Description))" />
+                        <RadzenDropDown AllowClear="true" TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" Data="@(allRuleSetNames.Where(s => (s != "Root") && !s.EndsWith("(Leaf)")).Select(s => new { RSName = s }))" TextProperty="RSName" ValueProperty="RSName" Style="margin-bottom: 20px" Change="@(args => AddRuleSetTargetRSChange(args, @currRuleSet.Description))" />
                         <br />
                         <h4>Select the Rule type:</h4>
                         <br />
@@ -179,27 +179,7 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		entries = new List<string>() { currRuleSet.Description };
 
-		allRuleSetNames     = new List<string>();
-		errorRuleSetNames   = new List<string>();
-		warningRuleSetNames = new List<string>();
-		opAndRuleSetNames   = new List<string>();
-
-		rulesEngine.AllRuleSets.ForEach(x => allRuleSetNames.Add(x.Description));
-
-		rulesEngine.AllRuleSets
-				   .Where(x => (x.ErrorSeverity == RULE_SET_ERR_LVL.ERR_LVL_SEVERE) && (x.ChildRuleSets.Count == 0))
-				   .ToList()
-				   .ForEach(x => errorRuleSetNames.Add(x.GetRuleSetDescription()));
-
-		rulesEngine.AllRuleSets
-				   .Where(x => (x.ErrorSeverity == RULE_SET_ERR_LVL.ERR_LVL_WARNING) && (x.ChildRuleSets.Count == 0))
-				   .ToList()
-				   .ForEach(x => warningRuleSetNames.Add(x.GetRuleSetDescription()));
-
-		rulesEngine.AllRuleSets
-				   .Where(x => (x.RulesEvalOperator == RULE_OP.OP_AND) && (x.ChildRuleSets.Count > 0))
-				   .ToList()
-				   .ForEach(x => opAndRuleSetNames.Add(x.GetRuleSetDescription()));
+		ResetCaches();
 	}
 
 	#region Add RuleSet Tab Handlers
@@ -229,11 +209,9 @@ Use this utility to view/edit your Wonka RuleTree.
 	{
 		var oTargetRS = value is IEnumerable<object> ? string.Join(", ", (IEnumerable<object>)value) : value;
 
-		/*
 		string sTargetRSDesc = (string) oTargetRS;
 
 		addRuleSetId = FindRuleSet(sTargetRSDesc).RuleSetId;
-		*/
 
 		StateHasChanged();
 	}
@@ -244,15 +222,17 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		try
 		{
-			/*
-			 * NOTE: Does not work
-			 * 
-			ParentRuleSet.AddNewRuleSet(addRuleSetDesc, addRuleSetTypeNum, addRuleSetErrLvlNum);
+			var RSTypeNum   = !String.IsNullOrEmpty(addRuleSetTypeNum) ? addRuleSetTypeNum : "1";
+			var RSErrLvlNum = !String.IsNullOrEmpty(addRuleSetErrLvlNum) ? addRuleSetErrLvlNum : "1";
+
+			var JustAddedRuleSet = ParentRuleSet.AddNewRuleSet(addRuleSetDesc, RSTypeNum, RSErrLvlNum);
 
 			ShowRuleSetAddSuccessDialog().ConfigureAwait(false);
 
+			IncludeNewRuleSet(JustAddedRuleSet);
+			//ResetCaches();
+
 			StateHasChanged();
-			 */
 		}
 		catch (System.Data.DataException ex)
 		{
@@ -380,6 +360,20 @@ Use this utility to view/edit your Wonka RuleTree.
 		return name;
 	}
 
+	void IncludeNewRuleSet(WonkaBizRuleSet poNewSet)
+	{
+		allRuleSetNames.Add(poNewSet.Description);
+
+		if ((poNewSet.ErrorSeverity == RULE_SET_ERR_LVL.ERR_LVL_SEVERE) && (poNewSet.ChildRuleSets.Count == 0))
+			errorRuleSetNames.Add(poNewSet.GetRuleSetDescription());
+
+		if ((poNewSet.ErrorSeverity == RULE_SET_ERR_LVL.ERR_LVL_WARNING) && (poNewSet.ChildRuleSets.Count == 0))
+			warningRuleSetNames.Add(poNewSet.GetRuleSetDescription());
+
+		if ((poNewSet.RulesEvalOperator == RULE_OP.OP_AND) && (poNewSet.ChildRuleSets.Count > 0))
+			opAndRuleSetNames.Add(poNewSet.GetRuleSetDescription());
+	}
+
 	public bool IsRuleSet(string psName)
 	{
 		var FoundRuleSet = FindRuleSet((string)psName);
@@ -465,6 +459,31 @@ Use this utility to view/edit your Wonka RuleTree.
 	void RemoveNulls(List<string> currList)
 	{
 		currList.RemoveAll(x => x == null);
+	}
+
+	void ResetCaches()
+	{
+		allRuleSetNames     = new List<string>();
+		errorRuleSetNames   = new List<string>();
+		warningRuleSetNames = new List<string>();
+		opAndRuleSetNames   = new List<string>();
+
+		rulesEngine.AllRuleSets.ForEach(x => allRuleSetNames.Add(x.Description));
+
+		rulesEngine.AllRuleSets
+				   .Where(x => (x.ErrorSeverity == RULE_SET_ERR_LVL.ERR_LVL_SEVERE) && (x.ChildRuleSets.Count == 0))
+				   .ToList()
+				   .ForEach(x => errorRuleSetNames.Add(x.GetRuleSetDescription()));
+
+		rulesEngine.AllRuleSets
+				   .Where(x => (x.ErrorSeverity == RULE_SET_ERR_LVL.ERR_LVL_WARNING) && (x.ChildRuleSets.Count == 0))
+				   .ToList()
+				   .ForEach(x => warningRuleSetNames.Add(x.GetRuleSetDescription()));
+
+		rulesEngine.AllRuleSets
+				   .Where(x => (x.RulesEvalOperator == RULE_OP.OP_AND) && (x.ChildRuleSets.Count > 0))
+				   .ToList()
+				   .ForEach(x => opAndRuleSetNames.Add(x.GetRuleSetDescription()));
 	}
 
 	void Close(dynamic result)
