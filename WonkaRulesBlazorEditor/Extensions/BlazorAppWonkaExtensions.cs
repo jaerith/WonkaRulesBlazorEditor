@@ -4,6 +4,10 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
+
+using Nethereum.Hex.HexConvertors.Extensions;
+using Nethereum.Web3;
 
 using Wonka.BizRulesEngine;
 using Wonka.BizRulesEngine.RuleTree;
@@ -16,6 +20,14 @@ namespace WonkaRulesBlazorEditor.Extensions
 {
     public static class BlazorAppWonkaExtensions
     {
+		#region Constants
+
+		public const string CONST_TEST_INFURA_KEY       = "7238211010344719ad14a89db874158c";
+		public const string CONST_TEST_INFURA_URL       = "https://mainnet.infura.io/v3/7238211010344719ad14a89db874158c";
+		public const string CONST_ETH_FNDTN_EOA_ADDRESS = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae";
+
+		#endregion
+
 		private static int mnRuleCounter    = 100000;
 		private static int mnRuleSetCounter = 200000;
 

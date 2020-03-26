@@ -19,8 +19,8 @@ Use this utility to view/edit your Wonka RuleTree.
 
     <div class="col-md-6">
         <div style="margin-top:20px">Rules File URL:</div>
-        <RadzenTextBox Style="margin-bottom: 20px; width: 600px" Change="@(args => ChooseRulesUrlChange(args, "TextBox"))" Placeholder="@currRulesUrl" MaxLength="1024"/>
-        <br />
+        <RadzenTextBox Style="margin-bottom: 20px; width: 450px" Change="@(args => ChooseRulesUrlChange(args, "TextBox"))" Placeholder="@currRulesUrl" MaxLength="1024"/>
+		<br/>
         <RadzenTree Data="@entries" Expand="@LoadFiles" Change="@SelectRow">
             <RadzenTreeLevel Text="@GetTextForNode" />
         </RadzenTree>
@@ -40,7 +40,7 @@ Use this utility to view/edit your Wonka RuleTree.
                         </div>
                     </RadzenCard>
                 </RadzenTabsItem>
-                <RadzenTabsItem Text="Add Standard Rule">
+                <RadzenTabsItem Text="Add Rule">
                     <RadzenCard Style="padding: 20px;">
                         <br />
                         <h4>Rule Desc Code:</h4>
@@ -77,6 +77,37 @@ Use this utility to view/edit your Wonka RuleTree.
                         <RadzenButton Text="Add Rule" Click="@((args) => AddRuleHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                     </RadzenCard>
                 </RadzenTabsItem>
+                <RadzenTabsItem Text="Add Eth Rule">
+                    <RadzenCard Style="padding: 20px;">
+                        <br />
+                        <h4>Ethereum Rule Desc Code:</h4>
+                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleIdHandler(args, "TextBox"))" />
+                        <br />
+                        <h4>Select the parent RuleSet:</h4>
+                        <RadzenDropDown AllowClear="true" TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" Data="@(allRuleSetNames.Where(s => s != "Root").Select(s => new { RSName = s }))" TextProperty="RSName" ValueProperty="RSName" Style="margin-bottom: 20px" Change="@(args => AddRuleTargetRSChange(args, @currRuleSet.Description))" />
+                        <br />
+                        <h4>Select the target Attribute:</h4>
+                        <RadzenDropDown AllowClear="true" TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" Data="@(rulesEngine.RefEnvHandle.AttrCache.Select(a => new { AName = a.AttrName }))" TextProperty="AName" ValueProperty="AName" Style="margin-bottom: 20px" Change="@(args => AddRuleTargetAttrChange(args, @currRuleSet.Description))" />
+                        <h4>Select the Rule type:</h4>
+                        <br />
+                        <RadzenSelectBar @bind-Value="addNethRuleOpChoice" TValue="int" Change="@((args) => AddNethRuleOpChange(args, "SelectBar with single selection"))" Style="margin-bottom: 20px;">
+                            <Items>
+                                <RadzenSelectBarItem Text="EOA Balance" Value="1" />
+                                <RadzenSelectBarItem Text="Contract Method" Value="2" />
+                            </Items>
+                        </RadzenSelectBar>
+                        <br />
+                        <h4>EOA Address (or Contract Address):</h4>
+                        <RadzenTextBox Style="margin-bottom: 20px" Placeholder="0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae" Change="@(args => AddNethRuleAddressHandler(args, "TextBox"))" />
+						<!--
+                        <br />
+                        <h4>Contract ABI (if applicable):</h4>
+                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddNethRuleContractABI(args, "TextBox"))" />
+						-->
+                        <br />
+                        <RadzenButton Text="Add Rule" Click="@((args) => AddNethRuleHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+                    </RadzenCard>
+                </RadzenTabsItem>
                 <RadzenTabsItem Text="Add RuleSet">
                     <RadzenCard Style="padding: 20px;">
                         <br />
@@ -86,7 +117,7 @@ Use this utility to view/edit your Wonka RuleTree.
                         <h4>Select the parent RuleSet:</h4>
                         <RadzenDropDown AllowClear="true" TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" Data="@(allRuleSetNames.Where(s => (s != "Root") && !s.EndsWith("(Leaf)")).Select(s => new { RSName = s }))" TextProperty="RSName" ValueProperty="RSName" Style="margin-bottom: 20px" Change="@(args => AddRuleSetTargetRSChange(args, @currRuleSet.Description))" />
                         <br />
-                        <h4>Select the Rule type:</h4>
+                        <h4>Select the RuleSet operator:</h4>
                         <br />
                         <RadzenSelectBar @bind-Value="addRuleSetOpChoice" TValue="int" Change="@((args) => AddRuleSetOpChange(args, "SelectBar with single selection"))" Style="margin-bottom: 20px;">
                             <Items>
@@ -94,7 +125,7 @@ Use this utility to view/edit your Wonka RuleTree.
                                 <RadzenSelectBarItem Text="Or" Value="2" />
                             </Items>
                         </RadzenSelectBar>
-                        <h4>Select the Rule type:</h4>
+                        <h4>Select the RuleSet error level (only for leaf RuleSets):</h4>
                         <br />
                         <RadzenSelectBar @bind-Value="addRuleSetErrLvlChoice" TValue="int" Change="@((args) => AddRuleSetSeverityChange(args, "SelectBar with single selection"))" Style="margin-bottom: 20px;">
                             <Items>
@@ -119,14 +150,17 @@ Use this utility to view/edit your Wonka RuleTree.
 	const string CONST_INFURA_IPFS_GATEWAY_URL = "https://ipfs.infura.io/ipfs/";
 	const string CONST_RULES_FILE_IPFS_KEY     = "QmXcsGDQthxbGW8C3Sx9r4tV9PGSj4MxJmtXF7dnXN5XUT";
 
-	bool             addRuleNotOp      = false;
-	int              addRuleSetId      = 0;
-	string           addRuleDesc       = "";
-	string           addRuleTargetAttr = "";
-	string           addRuleTypeNum    = "";
-	string           addRuleValue1     = "";
-	string           addRuleValue2     = "";
-	IEnumerable<int> addRuleChoice     = new int[] { 1 };
+	bool             addRuleNotOp        = false;
+	int              addRuleSetId        = 0;
+	string           addRuleDesc         = "";
+	string           addRuleTargetAttr   = "";
+	string           addRuleTypeNum      = "";
+	string           addNethRuleTypeNum  = "";
+	string           addRuleValue1       = "";
+	string           addRuleValue2       = "";
+	string           addNethRuleAddress  = "";
+	IEnumerable<int> addNethRuleOpChoice = new int[] { 1 };
+	IEnumerable<int> addRuleChoice       = new int[] { 1 };
 
 	string           addRuleSetDesc         = "";
 	string           addRuleSetTypeNum      = "";
@@ -290,6 +324,20 @@ Use this utility to view/edit your Wonka RuleTree.
 		StateHasChanged();
 	}
 
+	void AddNethRuleOpChange(IEnumerable<int> value, string name)
+	{
+		addNethRuleTypeNum = string.Join(", ", value);
+
+		StateHasChanged();
+	}
+
+	void AddNethRuleAddressHandler(string value, string name)
+	{
+		addNethRuleAddress = value;
+
+		StateHasChanged();
+	}
+
 	void AddRuleValue1Handler(string value, string name)
 	{
 		addRuleValue1 = value;
@@ -318,6 +366,37 @@ Use this utility to view/edit your Wonka RuleTree.
 			ShowRuleAddSuccessDialog().ConfigureAwait(false);
 
 			StateHasChanged();
+		}
+		catch (System.Data.DataException ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+	}
+
+	void AddNethRuleHandler(MouseEventArgs args, string buttonName)
+	{
+		currRuleSetId = FindRuleById(currRuleName).ParentRuleSetId;
+
+		// var TargetRuleSet = rulesEngine.FindRuleSet(currRuleSetId);
+		var TargetRuleSet = rulesEngine.FindRuleSet(addRuleSetId);
+
+		try
+		{
+			/*
+			 * NOTE: Will be changed to call new method
+			 *
+			TargetRuleSet.AddNewRule(rulesEngine.RefEnvHandle, addRuleDesc, addRuleTargetAttr, addRuleTypeNum, addRuleValue1, addRuleValue2, addRuleNotOp);
+
+			ShowRuleAddSuccessDialog().ConfigureAwait(false);
+
+			StateHasChanged();
+			*/
 		}
 		catch (System.Data.DataException ex)
 		{
