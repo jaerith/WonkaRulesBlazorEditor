@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -191,8 +192,9 @@ namespace WonkaRulesBlazorEditor.Extensions
 										   CheckBalanceIsWithinRange,
 										   DummySource);
 
-				string[] asParams = new string[3] { psAddRuleEthAddress, psAddRuleValue1, psAddRuleValue2 };
-				CustomOpRule.SetDomain(asParams);
+				CustomOpRule.AddDomainValue(psAddRuleEthAddress, true, TARGET_RECORD.TRID_NONE);
+				CustomOpRule.AddDomainValue(psAddRuleValue1,     true, TARGET_RECORD.TRID_NONE);
+				CustomOpRule.AddDomainValue(psAddRuleValue2,     true, TARGET_RECORD.TRID_NONE);
 
 				NewRule = CustomOpRule;
 			}
@@ -247,27 +249,36 @@ namespace WonkaRulesBlazorEditor.Extensions
 			// NOTE: Empty value indicates rule failure
 			string sEOA = "";
 
-			if (!String.IsNullOrEmpty(psEOA) && !String.IsNullOrEmpty(psMinValue) && !String.IsNullOrEmpty(psMaxValue))
+			if (!String.IsNullOrEmpty(psEOA))
 			{
 				long nCurrBalance = 0;
 				long nMinValue    = -1;
 				long nMaxValue    = -1;
+				long nTmpMinValue = 0;
+				long nTmpMaxValue = 0;
 
-				Int64.TryParse(psMinValue, out nMinValue);
-				Int64.TryParse(psMaxValue, out nMaxValue);
+				Int64.TryParse(psMinValue, out nTmpMinValue);
+				Int64.TryParse(psMaxValue, out nTmpMaxValue);
+
+				if (nTmpMinValue > 0)
+					nMinValue = nTmpMinValue;
+
+				if (nTmpMaxValue > 0)
+					nMaxValue = nTmpMaxValue;
 
 				var web3 = new Web3(CONST_TEST_INFURA_URL);
 
 				// Check the balance of one of the accounts provisioned in our chain, to do that, 
 				// we can execute the GetBalance request asynchronously:
-				var balance = web3.Eth.GetBalance.SendRequestAsync(psEOA).Result;
+				var balance  = web3.Eth.GetBalance.SendRequestAsync(psEOA).Result;
+				var minValue = new BigInteger(nMinValue);
+				var maxValue = new BigInteger(nMaxValue);
 
-				nCurrBalance = (long) balance.Value;
-				if ((nMinValue > -1) && (nMaxValue > -1) && (nCurrBalance >= nMinValue) && (nCurrBalance <= nMaxValue))
+				if ((nMinValue > -1) && (nMaxValue > -1) && (BigInteger.Compare(balance, minValue) > 0) && (BigInteger.Compare(balance, maxValue) < 0))
 					sEOA = psEOA;
-				else if ((nMinValue > -1) && (nCurrBalance >= nMinValue))
+				else if ((nMinValue > -1) && (BigInteger.Compare(balance, minValue) > 0))
 					sEOA = psEOA;
-				else if ((nMaxValue > -1) && (nCurrBalance <= nMaxValue))
+				else if ((nMaxValue > -1) && (BigInteger.Compare(balance, maxValue) < 0))
 					sEOA = psEOA;
 			}
 
