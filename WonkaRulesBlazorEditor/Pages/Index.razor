@@ -2,8 +2,9 @@
 @page "/dropdown"
 @page "/selectbar"
 @page "/splitbutton"
-@page "/tree"
 @page "/tabs"
+@page "/textarea"
+@page "/tree"
 
 @inject DialogService  dialogService
 
@@ -19,8 +20,8 @@ Use this utility to view/edit your Wonka RuleTree.
 
     <div class="col-md-6">
         <div style="margin-top:20px">Rules File URL:</div>
-        <RadzenTextBox Style="margin-bottom: 20px; width: 450px" Change="@(args => ChooseRulesUrlChange(args, "TextBox"))" Placeholder="@currRulesUrl" MaxLength="1024"/>
-		<br/>
+        <RadzenTextBox Style="margin-bottom: 20px; width: 450px" Change="@(args => ChooseRulesUrlChange(args, "TextBox"))" Placeholder="@currRulesUrl" MaxLength="1024" />
+        <br />
         <RadzenTree Data="@entries" Expand="@LoadFiles" Change="@SelectRow">
             <RadzenTreeLevel Text="@GetTextForNode" />
         </RadzenTree>
@@ -99,11 +100,17 @@ Use this utility to view/edit your Wonka RuleTree.
                         <br />
                         <h4>EOA Address (or Contract Address):</h4>
                         <RadzenTextBox Style="margin-bottom: 20px" Placeholder="0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae" Change="@(args => AddNethRuleAddressHandler(args, "TextBox"))" />
-						<!--
+                        <br />
+                        <h4>Value1/MinValue:</h4>
+                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleValue1Handler(args, "TextBox"))" />
+                        <br />
+                        <h4>Value2/MaxValue:</h4>
+                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleValue2Handler(args, "TextBox"))" />
+                        <!--
                         <br />
                         <h4>Contract ABI (if applicable):</h4>
                         <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddNethRuleContractABI(args, "TextBox"))" />
-						-->
+                        -->
                         <br />
                         <RadzenButton Text="Add Rule" Click="@((args) => AddNethRuleHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                     </RadzenCard>
@@ -150,30 +157,30 @@ Use this utility to view/edit your Wonka RuleTree.
 	const string CONST_INFURA_IPFS_GATEWAY_URL = "https://ipfs.infura.io/ipfs/";
 	const string CONST_RULES_FILE_IPFS_KEY     = "QmXcsGDQthxbGW8C3Sx9r4tV9PGSj4MxJmtXF7dnXN5XUT";
 
-	bool             addRuleNotOp        = false;
-	int              addRuleSetId        = 0;
-	string           addRuleDesc         = "";
-	string           addRuleTargetAttr   = "";
-	string           addRuleTypeNum      = "";
-	string           addNethRuleTypeNum  = "";
-	string           addRuleValue1       = "";
-	string           addRuleValue2       = "";
-	string           addNethRuleAddress  = "";
+	bool   addRuleNotOp       = false;
+	int    addRuleSetId       = 0;
+	string addRuleDesc        = "";
+	string addRuleTargetAttr  = "";
+	string addRuleTypeNum     = "";
+	string addNethRuleTypeNum = "";
+	string addRuleValue1      = "";
+	string addRuleValue2      = "";
+	string addNethRuleAddress = "";
 	IEnumerable<int> addNethRuleOpChoice = new int[] { 1 };
 	IEnumerable<int> addRuleChoice       = new int[] { 1 };
 
-	string           addRuleSetDesc         = "";
-	string           addRuleSetTypeNum      = "";
-	string           addRuleSetErrLvlNum    = "";
+	string addRuleSetDesc      = "";
+	string addRuleSetTypeNum   = "";
+	string addRuleSetErrLvlNum = "";
 	IEnumerable<int> addRuleSetOpChoice     = new int[] { 1 };
 	IEnumerable<int> addRuleSetErrLvlChoice = new int[] { 1 };
 
 	string rules = null;
 
-	int    currRuleSetId = 0;
-	string currRulesUrl  = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
-	string currRuleName  = "";
-	string currErrMsg    = "";
+	int currRuleSetId   = 0;
+	string currRulesUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
+	string currRuleName = "";
+	string currErrMsg   = "";
 
 	WonkaBizRulesEngine rulesEngine = null;
 
@@ -243,7 +250,7 @@ Use this utility to view/edit your Wonka RuleTree.
 	{
 		var oTargetRS = value is IEnumerable<object> ? string.Join(", ", (IEnumerable<object>)value) : value;
 
-		string sTargetRSDesc = (string) oTargetRS;
+		string sTargetRSDesc = (string)oTargetRS;
 
 		addRuleSetId = FindRuleSet(sTargetRSDesc).RuleSetId;
 
@@ -256,7 +263,7 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		try
 		{
-			var RSTypeNum   = !String.IsNullOrEmpty(addRuleSetTypeNum) ? addRuleSetTypeNum : "1";
+			var RSTypeNum = !String.IsNullOrEmpty(addRuleSetTypeNum) ? addRuleSetTypeNum : "1";
 			var RSErrLvlNum = !String.IsNullOrEmpty(addRuleSetErrLvlNum) ? addRuleSetErrLvlNum : "1";
 
 			var JustAddedRuleSet = ParentRuleSet.AddNewRuleSet(addRuleSetDesc, RSTypeNum, RSErrLvlNum);
@@ -295,7 +302,7 @@ Use this utility to view/edit your Wonka RuleTree.
 	{
 		var oTargetAttr = value is IEnumerable<object> ? string.Join(", ", (IEnumerable<object>)value) : value;
 
-		addRuleTargetAttr = (string) oTargetAttr;
+		addRuleTargetAttr = (string)oTargetAttr;
 
 		StateHasChanged();
 	}
@@ -310,7 +317,7 @@ Use this utility to view/edit your Wonka RuleTree.
 	{
 		var oTargetRS = value is IEnumerable<object> ? string.Join(", ", (IEnumerable<object>)value) : value;
 
-		string sTargetRSDesc = (string) oTargetRS;
+		string sTargetRSDesc = (string)oTargetRS;
 
 		addRuleSetId = FindRuleSet(sTargetRSDesc).RuleSetId;
 
@@ -388,15 +395,11 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		try
 		{
-			/*
-			 * NOTE: Will be changed to call new method
-			 *
-			TargetRuleSet.AddNewRule(rulesEngine.RefEnvHandle, addRuleDesc, addRuleTargetAttr, addRuleTypeNum, addRuleValue1, addRuleValue2, addRuleNotOp);
+			TargetRuleSet.AddNewNethereumRule(rulesEngine.RefEnvHandle, addRuleDesc, addRuleTargetAttr, "1", addNethRuleAddress, addRuleValue1, addRuleValue2);
 
 			ShowRuleAddSuccessDialog().ConfigureAwait(false);
 
 			StateHasChanged();
-			*/
 		}
 		catch (System.Data.DataException ex)
 		{
@@ -417,7 +420,7 @@ Use this utility to view/edit your Wonka RuleTree.
 		// events.Add(DateTime.Now, $"{name} value changed");
 	}
 
-	WonkaBizRuleSet FindRuleSet (int pnRuleSetId)
+	WonkaBizRuleSet FindRuleSet(int pnRuleSetId)
 	{
 		return rulesEngine.FindRuleSet(pnRuleSetId);
 	}
@@ -576,7 +579,18 @@ Use this utility to view/edit your Wonka RuleTree.
 			currRuleName = args.Text.Split(":")[1];
 
 		details.Clear();
-		details["Formula"] = FindRuleById(currRuleName).GetRuleDetails();
+
+		string sDetails = FindRuleById(currRuleName).GetRuleDetails();
+
+		if (sDetails.Contains("||"))
+		{
+			string[] asAllDetails = sDetails.Split("||");
+
+			for (int x = 0; x < asAllDetails.Length; ++x)
+				details["Detail" + x] = asAllDetails[x];
+		}
+		else
+			details["Detail"] = sDetails;
 
 		StateHasChanged();
 	}

@@ -27,7 +27,7 @@ namespace WonkaRulesBlazorEditor.Extensions
 		public const string CONST_ETH_FNDTN_EOA_ADDRESS = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae";
 
 		#endregion
-
+		
 		private static int mnRuleCounter    = 100000;
 		private static int mnRuleSetCounter = 200000;
 
@@ -157,7 +157,56 @@ namespace WonkaRulesBlazorEditor.Extensions
 			}
 		}
 
-        public static WonkaBizRuleSet AddNewRuleSet(this WonkaBizRuleSet poRuleSet,			                           
+		public static void AddNewNethereumRule(this WonkaBizRuleSet poRuleSet,
+									            WonkaRefEnvironment poRefEnv,
+												        	string psAddRuleDesc,
+													        string psAddRuleTargetAttr,
+													        string psAddRuleTypeNum,
+															string psAddRuleEthAddress,
+													        string psAddRuleValue1,
+													        string psAddRuleValue2)
+		{
+			int nRuleTypeNum = Int32.Parse(psAddRuleTypeNum);
+
+			WonkaBizRule NewRule = null;
+
+			WonkaRefAttr targetAttr = poRefEnv.GetAttributeByAttrName(psAddRuleTargetAttr);
+
+			if (nRuleTypeNum == 1)
+			{
+				if (!targetAttr.IsNumeric && !targetAttr.IsDecimal)
+					throw new DataException("ERROR!  Cannot perform arithmetic limit on a non-numeric value.");
+
+				if (String.IsNullOrEmpty(psAddRuleEthAddress))
+					psAddRuleEthAddress = CONST_ETH_FNDTN_EOA_ADDRESS;
+
+				WonkaBizSource DummySource =
+					new WonkaBizSource("EF_EOA", psAddRuleEthAddress, "", "", "", "", "", null);
+
+				CustomOperatorRule CustomOpRule =
+					new CustomOperatorRule(mnRuleCounter++,
+										   TARGET_RECORD.TRID_NEW_RECORD,
+										   targetAttr.AttrId,
+										   "CheckBalanceIsWithinRange",
+										   CheckBalanceIsWithinRange,
+										   DummySource);
+
+				string[] asParams = new string[3] { psAddRuleEthAddress, psAddRuleValue1, psAddRuleValue2 };
+				CustomOpRule.SetDomain(asParams);
+
+				NewRule = CustomOpRule;
+			}
+
+			if (NewRule != null)
+			{
+				if (!String.IsNullOrEmpty(psAddRuleDesc))
+					NewRule.DescRuleId = psAddRuleDesc;
+
+				poRuleSet.AddRule(NewRule);
+			}
+		}		
+
+		public static WonkaBizRuleSet AddNewRuleSet(this WonkaBizRuleSet poRuleSet,			                           
 			                                                      string psAddRuleSetDesc,
 													              string psAddRuleSetTypeNum,
 													              string psAddRuleSetErrorLvlNum)
@@ -191,6 +240,38 @@ namespace WonkaRulesBlazorEditor.Extensions
 			poRuleSet.AddChildRuleSet(NewRuleSet);
 
 			return NewRuleSet;
+		}
+
+		public static string CheckBalanceIsWithinRange(string psEOA, string psMinValue, string psMaxValue, string psDummyValue)
+		{
+			// NOTE: Empty value indicates rule failure
+			string sEOA = "";
+
+			if (!String.IsNullOrEmpty(psEOA) && !String.IsNullOrEmpty(psMinValue) && !String.IsNullOrEmpty(psMaxValue))
+			{
+				long nCurrBalance = 0;
+				long nMinValue    = -1;
+				long nMaxValue    = -1;
+
+				Int64.TryParse(psMinValue, out nMinValue);
+				Int64.TryParse(psMaxValue, out nMaxValue);
+
+				var web3 = new Web3(CONST_TEST_INFURA_URL);
+
+				// Check the balance of one of the accounts provisioned in our chain, to do that, 
+				// we can execute the GetBalance request asynchronously:
+				var balance = web3.Eth.GetBalance.SendRequestAsync(psEOA).Result;
+
+				nCurrBalance = (long) balance.Value;
+				if ((nMinValue > -1) && (nMaxValue > -1) && (nCurrBalance >= nMinValue) && (nCurrBalance <= nMaxValue))
+					sEOA = psEOA;
+				else if ((nMinValue > -1) && (nCurrBalance >= nMinValue))
+					sEOA = psEOA;
+				else if ((nMaxValue > -1) && (nCurrBalance <= nMaxValue))
+					sEOA = psEOA;
+			}
+
+			return sEOA;
 		}
 
 		public static WonkaBizRuleSet FindRuleSet(this WonkaBizRulesEngine rulesEngine, int pnTargetRuleSetId)
@@ -399,6 +480,10 @@ namespace WonkaRulesBlazorEditor.Extensions
 			{
 				RuleDesc.Append(" (PopulatedRule -> " + targetRule.TargetAttribute.AttrName);
 			}
+			else if (targetRule is CustomOperatorRule)
+			{
+				RuleDesc.Append(" (CustomOperatorRule -> " + targetRule.TargetAttribute.AttrName);
+			}
 
 			RuleDesc.Append(")");
 
@@ -436,7 +521,23 @@ namespace WonkaRulesBlazorEditor.Extensions
 			else if (targetRule is CustomOperatorRule)
 			{
 				var CustomOpRule = (CustomOperatorRule) targetRule;
-				RuleDesc.Append(CustomOpRule.TargetAttribute.AttrName + " = " + CustomOpRule.CustomOpName + "(" + String.Join(",", (CustomOpRule.CustomOpPropArgs)) + ")");
+
+				if (CustomOpRule.CustomOpDelegate == CheckBalanceIsWithinRange)
+				{
+					var CustomOpParams = CustomOpRule.DomainValueProps.Keys.ToList();
+
+					RuleDesc.Append("Target: " + CustomOpRule.TargetAttribute.AttrName +
+									"||Operator: " + CustomOpRule.CustomOpName +
+									"||Param - EOA Address(" + CustomOpParams[0] + ")" +
+									"||Param - Min Value(" + CustomOpParams[1] + ")" +
+									"||Param - Max Value(" + CustomOpParams[2] + ")");
+				}
+				else
+				{
+					RuleDesc.Append("Target: " + CustomOpRule.TargetAttribute.AttrName +
+									"||Operator: " + CustomOpRule.CustomOpName +
+									"||Parameters(" + String.Join(",", CustomOpRule.DomainValueProps.Keys.ToList()) + ")");
+				}
 			}
 			else if (targetRule is DateLimitRule)
 			{
