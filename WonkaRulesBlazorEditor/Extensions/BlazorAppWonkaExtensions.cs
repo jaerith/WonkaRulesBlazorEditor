@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -10,12 +11,15 @@ using System.Threading.Tasks;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.Web3;
 
+using Ipfs;
+using Ipfs.CoreApi;
+using Ipfs.Http;
+
 using Wonka.BizRulesEngine;
+using Wonka.BizRulesEngine.Reporting;
 using Wonka.BizRulesEngine.RuleTree;
 using Wonka.BizRulesEngine.RuleTree.RuleTypes;
 using Wonka.MetaData;
-using Wonka.Product;
-using WonkaSystem;
 
 namespace WonkaRulesBlazorEditor.Extensions
 {
@@ -23,9 +27,10 @@ namespace WonkaRulesBlazorEditor.Extensions
     {
 		#region Constants
 
-		public const string CONST_TEST_INFURA_KEY       = "7238211010344719ad14a89db874158c";
-		public const string CONST_TEST_INFURA_URL       = "https://mainnet.infura.io/v3/7238211010344719ad14a89db874158c";
-		public const string CONST_ETH_FNDTN_EOA_ADDRESS = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae";
+		public const string CONST_INFURA_IPFS_GATEWAY_URL = "https://ipfs.infura.io/ipfs/";
+		public const string CONST_TEST_INFURA_KEY         = "7238211010344719ad14a89db874158c";
+		public const string CONST_TEST_INFURA_URL         = "https://mainnet.infura.io/v3/7238211010344719ad14a89db874158c";
+		public const string CONST_ETH_FNDTN_EOA_ADDRESS   = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae";
 
 		#endregion
 		
@@ -283,6 +288,21 @@ namespace WonkaRulesBlazorEditor.Extensions
 			}
 
 			return sEOA;
+		}
+
+		public static string GetErrors(this WonkaBizRuleTreeReport report)
+		{
+			var ErrorReport = new StringBuilder();
+
+			foreach (var ReportNode in report.GetRuleSetSevereFailures())
+			{
+				if (ReportNode.RuleResults.Count > 0)
+					ErrorReport.Append(ReportNode.RuleResults[0].VerboseError.Replace("/", ""));
+				else
+					ErrorReport.Append(ReportNode.ErrorDescription);
+			}
+
+			return ErrorReport.ToString();
 		}
 
 		public static WonkaBizRuleSet FindRuleSet(this WonkaBizRulesEngine rulesEngine, int pnTargetRuleSetId)
@@ -590,6 +610,65 @@ namespace WonkaRulesBlazorEditor.Extensions
 		public static bool IsValidRuleSet(this WonkaBizRuleSet poTargetRuleSet)
 		{
 			return (poTargetRuleSet.ChildRuleSets.Count > 0) || (poTargetRuleSet.AssertiveRules.Count > 0) || (poTargetRuleSet.EvaluativeRules.Count > 0);
+		}
+
+		public static string PublishReportToIpfs(this WonkaBizRuleTreeReport poReport, string psIpfsFilePath, bool pbPinFlag = true)
+		{
+			string sIpfsHash = "";
+			string sReport   = "";
+
+			var ipfsClient = new IpfsClient(CONST_INFURA_IPFS_GATEWAY_URL);
+
+			sReport = poReport.GetErrors();
+
+			// NOTE: Not yet ready
+			// sReport = poReport.SerializeToXml();
+
+			if (String.IsNullOrEmpty(psIpfsFilePath))
+				throw new Exception("ERROR!  No IPFS filepath provided.");
+
+			if (String.IsNullOrEmpty(sReport))
+				throw new Exception("ERROR!  No report to be serialized.");
+
+			using (MemoryStream RulesXmlInputStream = new MemoryStream(Encoding.UTF8.GetBytes(sReport)))
+			{
+				var IpfsFileNode =
+					ipfsClient.FileSystem.AddAsync(RulesXmlInputStream, psIpfsFilePath, new AddFileOptions() { Pin = pbPinFlag }).Result;
+
+				sIpfsHash = IpfsFileNode.Id.ToString();
+			}
+
+			return sIpfsHash;
+		}
+
+		public static string PublishRulesToIpfs(this WonkaBizRulesEngine poEngine, string psIpfsFilePath, bool pbPinFlag = true)
+		{
+			string sIpfsHash = "";
+			string sRulesXml = "";
+
+			var ipfsClient = new IpfsClient(CONST_INFURA_IPFS_GATEWAY_URL);
+
+			// NOTE: Not yet ready
+			// sRulesXml = poEngine.SerializeToXml();
+
+			if (String.IsNullOrEmpty(psIpfsFilePath))
+				throw new Exception("ERROR!  No IPFS filepath provided.");
+
+			if (String.IsNullOrEmpty(sRulesXml))
+				throw new Exception("ERROR!  No rules XMl serialized from the rules engine.");
+
+			//var sIpfsFileNode =
+			//	ipfsClient.FileSystem.AddFileAsync(psIpfsFilePath, new AddFileOptions() { Pin = pbPinFlag }).Result;
+
+			using (MemoryStream RulesXmlInputStream = new MemoryStream(Encoding.UTF8.GetBytes(sRulesXml)))
+			{
+				var IpfsFileNode =
+					ipfsClient.FileSystem.AddAsync(RulesXmlInputStream, psIpfsFilePath, new AddFileOptions() { Pin = pbPinFlag }).Result;
+
+				sIpfsHash = IpfsFileNode.Id.ToString();
+			}
+
+			return sIpfsHash;
 		}
 	}
 }

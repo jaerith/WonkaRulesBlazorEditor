@@ -147,14 +147,23 @@ Use this utility to view/edit your Wonka RuleTree.
                 </RadzenTabsItem>
                 <RadzenTabsItem Text="Run Engine">
                     <RadzenCard Style="padding: 20px;">
-                        <h3>Attributes and Values</h3>
+                        <h3>Attributes and Values:</h3>
                         <RadzenTextArea @bind-Value="@attrValues" Cols="50" Rows="8" Style="margin-bottom: 20px" />
                         <br />
-                        <h3>RuleTree Report</h3>
-                        <RadzenTextArea @bind-Value="@reportMsg" Cols="50" Rows="8" Style="margin-bottom: 20px" />
-                        <br />
-                        <br />
                         <RadzenButton Text="Run" Click="@((args) => RunEngineHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+                        <br />
+                        <h3>RuleTree Report:</h3>
+                        <RadzenTextArea @bind-Value="@reportMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
+                        <br />
+                        <h4>Publish RuleReport Name to IPFS:</h4>
+                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsReportFileNameHandler(args, "TextBox"))" />
+                        <br />
+                        <RadzenButton Text="Publish" Click="@((args) => PublishReportToIpfsHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+                        <br />
+                        <h4>Publish RuleTree Name to IPFS:</h4>
+                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsTreeFileNameHandler(args, "TextBox"))" />
+                        <br />
+                        <RadzenButton Text="Publish" Click="@((args) => PublishTreeToIpfsHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                     </RadzenCard>
                 </RadzenTabsItem>
             </Tabs>
@@ -166,7 +175,7 @@ Use this utility to view/edit your Wonka RuleTree.
 
 @code {
 
-	const string CONST_INFURA_IPFS_GATEWAY_URL = "https://ipfs.infura.io/ipfs/";
+	const string CONST_INFURA_IPFS_GATEWAY_URL = BlazorAppWonkaExtensions.CONST_INFURA_IPFS_GATEWAY_URL;
 	const string CONST_RULES_FILE_IPFS_KEY     = "QmXcsGDQthxbGW8C3Sx9r4tV9PGSj4MxJmtXF7dnXN5XUT";
 
 	bool   addRuleNotOp       = false;
@@ -187,16 +196,20 @@ Use this utility to view/edit your Wonka RuleTree.
 	IEnumerable<int> addRuleSetOpChoice     = new int[] { 1 };
 	IEnumerable<int> addRuleSetErrLvlChoice = new int[] { 1 };
 
-	string rules      = null;
-	string attrValues = null;
-	string reportMsg  = null;
+	string rules        = null;
+	string attrValues   = null;
+	string reportMsg    = null;
+	string ipfsTreePath = null;
+	string ipfsRptPath  = null;
+	string ipfsHash     = null;
 
 	int    currRuleSetId = 0;
 	string currRulesUrl  = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
 	string currRuleName  = "";
 	string currErrMsg    = "";
 
-	WonkaBizRulesEngine rulesEngine = null;
+	WonkaBizRuleTreeReport currTreeReport = null;
+	WonkaBizRulesEngine    rulesEngine    = null;
 
 	WonkaBizRuleSet currRuleSet = null;
 
@@ -281,7 +294,7 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		try
 		{
-			var RSTypeNum = !String.IsNullOrEmpty(addRuleSetTypeNum) ? addRuleSetTypeNum : "1";
+			var RSTypeNum   = !String.IsNullOrEmpty(addRuleSetTypeNum) ? addRuleSetTypeNum : "1";
 			var RSErrLvlNum = !String.IsNullOrEmpty(addRuleSetErrLvlNum) ? addRuleSetErrLvlNum : "1";
 
 			var JustAddedRuleSet = ParentRuleSet.AddNewRuleSet(addRuleSetDesc, RSTypeNum, RSErrLvlNum);
@@ -390,6 +403,8 @@ Use this utility to view/edit your Wonka RuleTree.
 
 			ShowRuleAddSuccessDialog().ConfigureAwait(false);
 
+			ClearTempVariables();
+
 			StateHasChanged();
 		}
 		catch (System.Data.DataException ex)
@@ -417,6 +432,8 @@ Use this utility to view/edit your Wonka RuleTree.
 
 			ShowRuleAddSuccessDialog().ConfigureAwait(false);
 
+			ClearTempVariables();
+
 			StateHasChanged();
 		}
 		catch (System.Data.DataException ex)
@@ -434,6 +451,67 @@ Use this utility to view/edit your Wonka RuleTree.
 	#endregion
 
 	#region Run Engine Handlers
+
+	void IpfsReportFileNameHandler(string value, string name)
+	{
+		ipfsRptPath = value;
+
+		StateHasChanged();
+	}
+
+	void IpfsTreeFileNameHandler(string value, string name)
+	{
+		ipfsTreePath = value;
+
+		StateHasChanged();
+	}
+
+	void PublishReportToIpfsHandler(MouseEventArgs args, string buttonName)
+	{
+		try
+		{
+			if (currTreeReport != null)
+			{
+				ipfsHash = currTreeReport.PublishReportToIpfs(ipfsRptPath);
+
+				ShowPublishSuccessDialog().ConfigureAwait(false);
+
+				StateHasChanged();
+			}
+		}
+		catch (Wonka.BizRulesEngine.WonkaBizRuleException ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+	}
+
+	void PublishTreeToIpfsHandler(MouseEventArgs args, string buttonName)
+	{
+		try
+		{
+			ipfsHash = rulesEngine.PublishRulesToIpfs(ipfsTreePath);
+
+			ShowPublishSuccessDialog().ConfigureAwait(false);
+
+			StateHasChanged();
+		}
+		catch (Wonka.BizRulesEngine.WonkaBizRuleException ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+	}
 
 	void RunEngineHandler(MouseEventArgs args, string buttonName)
 	{
@@ -471,7 +549,7 @@ Use this utility to view/edit your Wonka RuleTree.
 					}
 				}
 
-				var RulesReport = rulesEngine.Validate(TestProduct);
+				var RulesReport = currTreeReport = rulesEngine.Validate(TestProduct);
 
 				if (RulesReport.OverallRuleTreeResult == ERR_CD.CD_SUCCESS)
 				{
@@ -479,17 +557,7 @@ Use this utility to view/edit your Wonka RuleTree.
 				}
 				else
 				{
-					var ErrorReport = new StringBuilder();
-
-					foreach (var ReportNode in RulesReport.GetRuleSetSevereFailures())
-					{
-						if (ReportNode.RuleResults.Count > 0)
-							ErrorReport.Append(ReportNode.RuleResults[0].VerboseError.Replace("/", ""));
-						else
-						    ErrorReport.Append(ReportNode.ErrorDescription);
-					}
-
-					reportMsg = ErrorReport.ToString();
+					reportMsg = RulesReport.GetErrors();
 				}
 
 				StateHasChanged();
@@ -512,6 +580,19 @@ Use this utility to view/edit your Wonka RuleTree.
 	void ChooseRulesUrlChange(string value, string name)
 	{
 		// events.Add(DateTime.Now, $"{name} value changed");
+	}
+
+	void ClearTempVariables()
+	{
+		addRuleNotOp = false;
+		addRuleSetId = 0;
+		addRuleDesc  = "";
+
+		addRuleTargetAttr  = "";
+		addRuleTypeNum     = "";
+		addNethRuleAddress = "";
+		addRuleValue1      = "";
+		addRuleValue2      = "";
 	}
 
 	WonkaBizRuleSet FindRuleSet(int pnRuleSetId)
@@ -711,6 +792,17 @@ Use this utility to view/edit your Wonka RuleTree.
 			</div>
 		</RadzenCard>);
 
+	async Task ShowPublishSuccessDialog() => await dialogService.OpenAsync("SUCCESS!", ds =>
+		@<RadzenCard Style="padding: 20px;">
+			<p Style="margin-bottom: 10px;">Saved content to IPFS, with the return hash (@ipfsHash).</p>
+			<div class="row">
+				<div class="col-md-12">
+					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
+				</div>
+			</div>
+		</RadzenCard>);
+
+
 	async Task ShowRuleAddSuccessDialog() => await dialogService.OpenAsync("SUCCESS!", ds =>
 		@<RadzenCard Style="padding: 20px;">
 			<p Style="margin-bottom: 10px;">Rule added successfully!  Please now close and expand the RuleSet node in order to refresh and observe the addition of the new Rule.</p>
@@ -739,7 +831,7 @@ Use this utility to view/edit your Wonka RuleTree.
 					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
 				</div>
 			</div>
-		</RadzenCard>);
+		</RadzenCard>);	
 
 }
 
