@@ -21,16 +21,20 @@ using Wonka.BizRulesEngine.RuleTree;
 using Wonka.BizRulesEngine.RuleTree.RuleTypes;
 using Wonka.MetaData;
 
+using WonkaRulesBlazorEditor.Services;
+
 namespace WonkaRulesBlazorEditor.Extensions
 {
     public static class BlazorAppWonkaExtensions
     {
 		#region Constants
 
-		public const string CONST_INFURA_IPFS_GATEWAY_URL = "https://ipfs.infura.io/ipfs/";
-		public const string CONST_TEST_INFURA_KEY         = "7238211010344719ad14a89db874158c";
-		public const string CONST_TEST_INFURA_URL         = "https://mainnet.infura.io/v3/7238211010344719ad14a89db874158c";
-		public const string CONST_ETH_FNDTN_EOA_ADDRESS   = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae";
+		public const string CONST_INFURA_IPFS_GATEWAY_URL     = "https://ipfs.infura.io/ipfs/";
+		public const string CONST_INFURA_IPFS_API_GATEWAY_URL = "https://ipfs.infura.io:5001/7238211010344719ad14a89db874158c/api/";
+		public const string CONST_TEST_INFURA_KEY             = "7238211010344719ad14a89db874158c";
+		public const string CONST_TEST_INFURA_URL             = "https://mainnet.infura.io/v3/7238211010344719ad14a89db874158c";
+		public const string CONST_ETH_FNDTN_EOA_ADDRESS       = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae";
+		public const string CONST_RULES_FILE_IPFS_KEY         = "QmXcsGDQthxbGW8C3Sx9r4tV9PGSj4MxJmtXF7dnXN5XUT";
 
 		#endregion
 		
@@ -612,12 +616,15 @@ namespace WonkaRulesBlazorEditor.Extensions
 			return (poTargetRuleSet.ChildRuleSets.Count > 0) || (poTargetRuleSet.AssertiveRules.Count > 0) || (poTargetRuleSet.EvaluativeRules.Count > 0);
 		}
 
-		public static string PublishReportToIpfs(this WonkaBizRuleTreeReport poReport, string psIpfsFilePath, bool pbPinFlag = true)
+		public static async Task<string> PublishReportToIpfs(this WonkaBizRuleTreeReport poReport,
+			                                                                      string psIpfsFilePath,
+																	                bool pbPinFlag = true,
+                                                                                  string psIpfsGateway = CONST_INFURA_IPFS_API_GATEWAY_URL)
 		{
 			string sIpfsHash = "";
 			string sReport   = "";
 
-			var ipfsClient = new IpfsClient(CONST_INFURA_IPFS_GATEWAY_URL);
+			var ipfsSvc = new IpfsService(psIpfsGateway);
 
 			sReport = poReport.GetErrors();
 
@@ -625,11 +632,16 @@ namespace WonkaRulesBlazorEditor.Extensions
 			// sReport = poReport.SerializeToXml();
 
 			if (String.IsNullOrEmpty(psIpfsFilePath))
-				throw new Exception("ERROR!  No IPFS filepath provided.");
+				psIpfsFilePath = "testreport";
 
 			if (String.IsNullOrEmpty(sReport))
 				throw new Exception("ERROR!  No report to be serialized.");
 
+			var IpfsNode = await ipfsSvc.AddTextAsync(sReport).ConfigureAwait(false);
+
+			sIpfsHash = IpfsNode.Hash.ToString();
+
+			/*
 			using (MemoryStream RulesXmlInputStream = new MemoryStream(Encoding.UTF8.GetBytes(sReport)))
 			{
 				var IpfsFileNode =
@@ -637,28 +649,39 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 				sIpfsHash = IpfsFileNode.Id.ToString();
 			}
+			*/
 
 			return sIpfsHash;
 		}
 
-		public static string PublishRulesToIpfs(this WonkaBizRulesEngine poEngine, string psIpfsFilePath, bool pbPinFlag = true)
+		public static async Task<string> PublishRulesToIpfs(this WonkaBizRulesEngine poEngine,
+			                                                                  string psIpfsFilePath,
+																                bool pbPinFlag = true,
+																              string psIpfsGateway = CONST_INFURA_IPFS_API_GATEWAY_URL)
 		{
 			string sIpfsHash = "";
 			string sRulesXml = "";
 
-			var ipfsClient = new IpfsClient(CONST_INFURA_IPFS_GATEWAY_URL);
+			var ipfsSvc = new IpfsService(psIpfsGateway);
 
-			// NOTE: Not yet ready
-			// sRulesXml = poEngine.SerializeToXml();
+			var RulesWriter =
+				new Wonka.BizRulesEngine.Writers.WonkaBizRulesXmlWriter(poEngine);
+
+			sRulesXml = RulesWriter.ExportXmlString();
 
 			if (String.IsNullOrEmpty(psIpfsFilePath))
-				throw new Exception("ERROR!  No IPFS filepath provided.");
+				psIpfsFilePath = "testruletree";
 
 			if (String.IsNullOrEmpty(sRulesXml))
 				throw new Exception("ERROR!  No rules XMl serialized from the rules engine.");
 
-			//var sIpfsFileNode =
-			//	ipfsClient.FileSystem.AddFileAsync(psIpfsFilePath, new AddFileOptions() { Pin = pbPinFlag }).Result;
+			var IpfsNode = await ipfsSvc.AddTextAsync(sRulesXml).ConfigureAwait(false);
+
+			sIpfsHash = IpfsNode.Hash.ToString();
+
+			/*
+			var sIpfsFileNode =
+				ipfsClient.FileSystem.AddFileAsync(psIpfsFilePath, new AddFileOptions() { Pin = pbPinFlag }).Result;
 
 			using (MemoryStream RulesXmlInputStream = new MemoryStream(Encoding.UTF8.GetBytes(sRulesXml)))
 			{
@@ -667,6 +690,7 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 				sIpfsHash = IpfsFileNode.Id.ToString();
 			}
+			*/
 
 			return sIpfsHash;
 		}

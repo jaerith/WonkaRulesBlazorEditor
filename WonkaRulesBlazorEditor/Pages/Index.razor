@@ -155,15 +155,15 @@ Use this utility to view/edit your Wonka RuleTree.
                         <h3>RuleTree Report:</h3>
                         <RadzenTextArea @bind-Value="@reportMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
                         <br />
-                        <h4>Publish RuleReport Name to IPFS:</h4>
+                        <h4>Publish RuleReport to IPFS (using the name below):</h4>
                         <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsReportFileNameHandler(args, "TextBox"))" />
                         <br />
                         <RadzenButton Text="Publish" Click="@((args) => PublishReportToIpfsHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                         <br />
-                        <h4>Publish RuleTree Name to IPFS:</h4>
+                        <h4>Upload New RuleTree to IPFS (using the name below):</h4>
                         <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsTreeFileNameHandler(args, "TextBox"))" />
                         <br />
-                        <RadzenButton Text="Publish" Click="@((args) => PublishTreeToIpfsHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+                        <RadzenButton Text="Upload" Click="@((args) => PublishTreeToIpfsHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                     </RadzenCard>
                 </RadzenTabsItem>
             </Tabs>
@@ -176,7 +176,7 @@ Use this utility to view/edit your Wonka RuleTree.
 @code {
 
 	const string CONST_INFURA_IPFS_GATEWAY_URL = BlazorAppWonkaExtensions.CONST_INFURA_IPFS_GATEWAY_URL;
-	const string CONST_RULES_FILE_IPFS_KEY     = "QmXcsGDQthxbGW8C3Sx9r4tV9PGSj4MxJmtXF7dnXN5XUT";
+	const string CONST_RULES_FILE_IPFS_KEY     = BlazorAppWonkaExtensions.CONST_RULES_FILE_IPFS_KEY;
 
 	bool   addRuleNotOp       = false;
 	int    addRuleSetId       = 0;
@@ -472,9 +472,13 @@ Use this utility to view/edit your Wonka RuleTree.
 		{
 			if (currTreeReport != null)
 			{
-				ipfsHash = currTreeReport.PublishReportToIpfs(ipfsRptPath);
+				/*
+				 * NOTE: Does not yet work correctly
+				 * 
+				ipfsHash = currTreeReport.PublishReportToIpfs(ipfsRptPath).Result;
 
 				ShowPublishSuccessDialog().ConfigureAwait(false);
+				 */
 
 				StateHasChanged();
 			}
@@ -495,9 +499,13 @@ Use this utility to view/edit your Wonka RuleTree.
 	{
 		try
 		{
+			/*
+			 * NOTE: Does not yet work correctly
+			 * 
 			ipfsHash = rulesEngine.PublishRulesToIpfs(ipfsTreePath);
 
 			ShowPublishSuccessDialog().ConfigureAwait(false);
+			 */
 
 			StateHasChanged();
 		}
