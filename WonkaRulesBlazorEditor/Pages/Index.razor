@@ -40,6 +40,8 @@ Use this utility to view/edit your Wonka RuleTree.
                             }
                         </div>
                     </RadzenCard>
+                    <br />
+                    <RadzenButton Text="Remove" Click="@((args) => RemoveRuleHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                 </RadzenTabsItem>
                 <RadzenTabsItem Text="Add Rule">
                     <RadzenCard Style="padding: 20px;">
@@ -450,6 +452,38 @@ Use this utility to view/edit your Wonka RuleTree.
 
 	#endregion
 
+	#region Remove Rule Handlers
+
+	void RemoveRuleHandler(MouseEventArgs args, string buttonName)
+	{
+		currRuleSetId = FindRuleById(currRuleName).ParentRuleSetId;
+
+		try
+		{
+			var currRuleSet = rulesEngine.FindRuleSet(currRuleSetId);
+
+			currRuleSet.RemoveRuleById(currRuleName);
+
+			ShowRuleRemoveSuccessDialog().ConfigureAwait(false);
+
+			ClearTempVariables();
+
+			StateHasChanged();
+		}
+		catch (System.Data.DataException ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+	}
+
+	#endregion
+
 	#region Run Engine Handlers
 
 	void IpfsReportFileNameHandler(string value, string name)
@@ -814,6 +848,16 @@ Use this utility to view/edit your Wonka RuleTree.
 	async Task ShowRuleAddSuccessDialog() => await dialogService.OpenAsync("SUCCESS!", ds =>
 		@<RadzenCard Style="padding: 20px;">
 			<p Style="margin-bottom: 10px;">Rule added successfully!  Please now close and expand the RuleSet node in order to refresh and observe the addition of the new Rule.</p>
+			<div class="row">
+				<div class="col-md-12">
+					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
+				</div>
+			</div>
+		</RadzenCard>);
+
+	async Task ShowRuleRemoveSuccessDialog() => await dialogService.OpenAsync("SUCCESS!", ds =>
+		@<RadzenCard Style="padding: 20px;">
+			<p Style="margin-bottom: 10px;">Rule removed successfully!  Please now close and expand the RuleSet node in order to refresh and observe the addition of the new Rule.</p>
 			<div class="row">
 				<div class="col-md-12">
 					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />

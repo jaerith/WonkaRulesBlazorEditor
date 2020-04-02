@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 using Ipfs;
@@ -20,16 +21,20 @@ namespace WonkaRulesBlazorEditor.Services
         public async Task<Cid> AddFileAsync(FileInfo fileInfo)
         {
             var ipfs = new IpfsClient(ipfsUrl);
+
             var systemNode = await ipfs.FileSystem.AddFileAsync(fileInfo.FullName).ConfigureAwait(false);
             await ipfs.Pin.AddAsync(systemNode.Id);
+
             return systemNode.Id;
         }
 
         public async Task<Cid> AddTextAsync(string psText)
         {
             var ipfs = new IpfsClient(ipfsUrl);
+
             var systemNode = await ipfs.FileSystem.AddTextAsync(psText).ConfigureAwait(false);
             await ipfs.Pin.AddAsync(systemNode.Id);
+
             return systemNode.Id;
         }
     }

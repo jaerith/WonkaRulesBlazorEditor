@@ -694,5 +694,12 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 			return sIpfsHash;
 		}
+
+        public static void RemoveRuleById(this WonkaBizRuleSet poTargetSet, string psSoughtId)
+		{
+			poTargetSet.EvaluativeRules.RemoveAll(x => x.DescRuleId == psSoughtId);
+
+			poTargetSet.AssertiveRules.RemoveAll(x => x.DescRuleId == psSoughtId);
+		}
 	}
 }
