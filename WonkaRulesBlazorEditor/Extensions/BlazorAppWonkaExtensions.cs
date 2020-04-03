@@ -8,20 +8,11 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-using Nethereum.Hex.HexConvertors.Extensions;
-using Nethereum.Web3;
-
-using Ipfs;
-using Ipfs.CoreApi;
-using Ipfs.Http;
-
 using Wonka.BizRulesEngine;
 using Wonka.BizRulesEngine.Reporting;
 using Wonka.BizRulesEngine.RuleTree;
 using Wonka.BizRulesEngine.RuleTree.RuleTypes;
 using Wonka.MetaData;
-
-using WonkaRulesBlazorEditor.Services;
 
 namespace WonkaRulesBlazorEditor.Extensions
 {
@@ -29,12 +20,8 @@ namespace WonkaRulesBlazorEditor.Extensions
     {
 		#region Constants
 
-		public const string CONST_INFURA_IPFS_GATEWAY_URL     = "https://ipfs.infura.io/ipfs/";
-		public const string CONST_INFURA_IPFS_API_GATEWAY_URL = "https://ipfs.infura.io:5001/7238211010344719ad14a89db874158c/api/";
-		public const string CONST_TEST_INFURA_KEY             = "7238211010344719ad14a89db874158c";
-		public const string CONST_TEST_INFURA_URL             = "https://mainnet.infura.io/v3/7238211010344719ad14a89db874158c";
-		public const string CONST_ETH_FNDTN_EOA_ADDRESS       = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae";
-		public const string CONST_RULES_FILE_IPFS_KEY         = "QmXcsGDQthxbGW8C3Sx9r4tV9PGSj4MxJmtXF7dnXN5XUT";
+		public const string CONST_STATUS_CD_ACTIVE   = "ACT";
+		public const string CONST_STATUS_CD_INACTIVE = "OOS";
 
 		#endregion
 		
@@ -176,19 +163,28 @@ namespace WonkaRulesBlazorEditor.Extensions
 													        string psAddRuleValue1,
 													        string psAddRuleValue2)
 		{
+			if (String.IsNullOrEmpty(psAddRuleTypeNum))
+				psAddRuleTypeNum = "1";
+
 			int nRuleTypeNum = Int32.Parse(psAddRuleTypeNum);
 
 			WonkaBizRule NewRule = null;
 
 			WonkaRefAttr targetAttr = poRefEnv.GetAttributeByAttrName(psAddRuleTargetAttr);
 
-			if (nRuleTypeNum == 1)
+			if ((nRuleTypeNum == 1) | (nRuleTypeNum == 2))
 			{
-				if (!targetAttr.IsNumeric && !targetAttr.IsDecimal)
-					throw new DataException("ERROR!  Cannot perform arithmetic limit on a non-numeric value.");
+				if (targetAttr.IsNumeric || targetAttr.IsDecimal)
+					throw new DataException("ERROR!  Cannot perform offered Nethereum rules on a numeric value.");
 
 				if (String.IsNullOrEmpty(psAddRuleEthAddress))
-					psAddRuleEthAddress = CONST_ETH_FNDTN_EOA_ADDRESS;
+					psAddRuleEthAddress = BlazorAppNethereumExtensions.CONST_ETH_FNDTN_EOA_ADDRESS;
+			}
+
+			if (nRuleTypeNum == 1)
+			{
+				if (targetAttr.AttrName != "AccountStatus")
+					throw new Exception("ERROR!  Cannot add BALANCE_WITHIN_RANGE rule with any attribute target other than AccountStatus.");
 
 				WonkaBizSource DummySource =
 					new WonkaBizSource("EF_EOA", psAddRuleEthAddress, "", "", "", "", "", null);
@@ -197,9 +193,37 @@ namespace WonkaRulesBlazorEditor.Extensions
 					new CustomOperatorRule(mnRuleCounter++,
 										   TARGET_RECORD.TRID_NEW_RECORD,
 										   targetAttr.AttrId,
-										   "CheckBalanceIsWithinRange",
-										   CheckBalanceIsWithinRange,
+										   "BALANCE_WITHIN_RANGE",
+										   BlazorAppNethereumExtensions.CheckBalanceIsWithinRange,
 										   DummySource);
+
+				CustomOpRule.AddDomainValue(psAddRuleEthAddress, true, TARGET_RECORD.TRID_NONE);
+				CustomOpRule.AddDomainValue(psAddRuleValue1,     true, TARGET_RECORD.TRID_NONE);
+				CustomOpRule.AddDomainValue(psAddRuleValue2,     true, TARGET_RECORD.TRID_NONE);
+
+				NewRule = CustomOpRule;
+			}
+			else if (nRuleTypeNum == 2)
+			{
+				if (targetAttr.AttrName != "AuditReviewFlag")
+					throw new Exception("ERROR!  Cannot add ANY_EVENTS_IN_BLOCK_RANGE rule with any attribute target other than AuditReviewFlag.");
+
+				WonkaBizSource DummySource =
+					new WonkaBizSource("ERC20", psAddRuleEthAddress, "", "", "", "", "", null);
+
+				CustomOperatorRule CustomOpRule =
+					new CustomOperatorRule(mnRuleCounter++,
+										   TARGET_RECORD.TRID_NEW_RECORD,
+										   targetAttr.AttrId,
+										   "ANY_EVENTS_IN_BLOCK_RANGE",
+										   BlazorAppNethereumExtensions.AnyEventsInBlockRange,
+										   DummySource);
+
+				if (String.IsNullOrEmpty(psAddRuleValue1))
+					psAddRuleValue1 = "8450678";
+
+				if (String.IsNullOrEmpty(psAddRuleValue2))
+					psAddRuleValue2 = "8450698";
 
 				CustomOpRule.AddDomainValue(psAddRuleEthAddress, true, TARGET_RECORD.TRID_NONE);
 				CustomOpRule.AddDomainValue(psAddRuleValue1,     true, TARGET_RECORD.TRID_NONE);
@@ -251,47 +275,6 @@ namespace WonkaRulesBlazorEditor.Extensions
 			poRuleSet.AddChildRuleSet(NewRuleSet);
 
 			return NewRuleSet;
-		}
-
-		public static string CheckBalanceIsWithinRange(string psEOA, string psMinValue, string psMaxValue, string psDummyValue)
-		{
-			// NOTE: Empty value indicates rule failure
-			string sEOA = "";
-
-			if (!String.IsNullOrEmpty(psEOA))
-			{
-				long nCurrBalance = 0;
-				long nMinValue    = -1;
-				long nMaxValue    = -1;
-				long nTmpMinValue = 0;
-				long nTmpMaxValue = 0;
-
-				Int64.TryParse(psMinValue, out nTmpMinValue);
-				Int64.TryParse(psMaxValue, out nTmpMaxValue);
-
-				if (nTmpMinValue > 0)
-					nMinValue = nTmpMinValue;
-
-				if (nTmpMaxValue > 0)
-					nMaxValue = nTmpMaxValue;
-
-				var web3 = new Web3(CONST_TEST_INFURA_URL);
-
-				// Check the balance of one of the accounts provisioned in our chain, to do that, 
-				// we can execute the GetBalance request asynchronously:
-				var balance  = web3.Eth.GetBalance.SendRequestAsync(psEOA).Result;
-				var minValue = new BigInteger(nMinValue);
-				var maxValue = new BigInteger(nMaxValue);
-
-				if ((nMinValue > -1) && (nMaxValue > -1) && (BigInteger.Compare(balance, minValue) > 0) && (BigInteger.Compare(balance, maxValue) < 0))
-					sEOA = psEOA;
-				else if ((nMinValue > -1) && (BigInteger.Compare(balance, minValue) > 0))
-					sEOA = psEOA;
-				else if ((nMaxValue > -1) && (BigInteger.Compare(balance, maxValue) < 0))
-					sEOA = psEOA;
-			}
-
-			return sEOA;
 		}
 
 		public static string GetErrors(this WonkaBizRuleTreeReport report)
@@ -557,7 +540,7 @@ namespace WonkaRulesBlazorEditor.Extensions
 			{
 				var CustomOpRule = (CustomOperatorRule) targetRule;
 
-				if (CustomOpRule.CustomOpDelegate == CheckBalanceIsWithinRange)
+				if (CustomOpRule.CustomOpDelegate == BlazorAppNethereumExtensions.CheckBalanceIsWithinRange)
 				{
 					var CustomOpParams = CustomOpRule.DomainValueProps.Keys.ToList();
 
@@ -616,90 +599,19 @@ namespace WonkaRulesBlazorEditor.Extensions
 			return (poTargetRuleSet.ChildRuleSets.Count > 0) || (poTargetRuleSet.AssertiveRules.Count > 0) || (poTargetRuleSet.EvaluativeRules.Count > 0);
 		}
 
-		public static async Task<string> PublishReportToIpfs(this WonkaBizRuleTreeReport poReport,
-			                                                                      string psIpfsFilePath,
-																	                bool pbPinFlag = true,
-                                                                                  string psIpfsGateway = CONST_INFURA_IPFS_API_GATEWAY_URL)
-		{
-			string sIpfsHash = "";
-			string sReport   = "";
-
-			var ipfsSvc = new IpfsService(psIpfsGateway);
-
-			sReport = poReport.GetErrors();
-
-			// NOTE: Not yet ready
-			// sReport = poReport.SerializeToXml();
-
-			if (String.IsNullOrEmpty(psIpfsFilePath))
-				psIpfsFilePath = "testreport";
-
-			if (String.IsNullOrEmpty(sReport))
-				throw new Exception("ERROR!  No report to be serialized.");
-
-			var IpfsNode = await ipfsSvc.AddTextAsync(sReport).ConfigureAwait(false);
-
-			sIpfsHash = IpfsNode.Hash.ToString();
-
-			/*
-			using (MemoryStream RulesXmlInputStream = new MemoryStream(Encoding.UTF8.GetBytes(sReport)))
-			{
-				var IpfsFileNode =
-					ipfsClient.FileSystem.AddAsync(RulesXmlInputStream, psIpfsFilePath, new AddFileOptions() { Pin = pbPinFlag }).Result;
-
-				sIpfsHash = IpfsFileNode.Id.ToString();
-			}
-			*/
-
-			return sIpfsHash;
-		}
-
-		public static async Task<string> PublishRulesToIpfs(this WonkaBizRulesEngine poEngine,
-			                                                                  string psIpfsFilePath,
-																                bool pbPinFlag = true,
-																              string psIpfsGateway = CONST_INFURA_IPFS_API_GATEWAY_URL)
-		{
-			string sIpfsHash = "";
-			string sRulesXml = "";
-
-			var ipfsSvc = new IpfsService(psIpfsGateway);
-
-			var RulesWriter =
-				new Wonka.BizRulesEngine.Writers.WonkaBizRulesXmlWriter(poEngine);
-
-			sRulesXml = RulesWriter.ExportXmlString();
-
-			if (String.IsNullOrEmpty(psIpfsFilePath))
-				psIpfsFilePath = "testruletree";
-
-			if (String.IsNullOrEmpty(sRulesXml))
-				throw new Exception("ERROR!  No rules XMl serialized from the rules engine.");
-
-			var IpfsNode = await ipfsSvc.AddTextAsync(sRulesXml).ConfigureAwait(false);
-
-			sIpfsHash = IpfsNode.Hash.ToString();
-
-			/*
-			var sIpfsFileNode =
-				ipfsClient.FileSystem.AddFileAsync(psIpfsFilePath, new AddFileOptions() { Pin = pbPinFlag }).Result;
-
-			using (MemoryStream RulesXmlInputStream = new MemoryStream(Encoding.UTF8.GetBytes(sRulesXml)))
-			{
-				var IpfsFileNode =
-					ipfsClient.FileSystem.AddAsync(RulesXmlInputStream, psIpfsFilePath, new AddFileOptions() { Pin = pbPinFlag }).Result;
-
-				sIpfsHash = IpfsFileNode.Id.ToString();
-			}
-			*/
-
-			return sIpfsHash;
-		}
-
         public static void RemoveRuleById(this WonkaBizRuleSet poTargetSet, string psSoughtId)
 		{
 			poTargetSet.EvaluativeRules.RemoveAll(x => x.DescRuleId == psSoughtId);
 
 			poTargetSet.AssertiveRules.RemoveAll(x => x.DescRuleId == psSoughtId);
+		}
+
+		public static string ToXml(this WonkaBizRulesEngine poEngine)
+		{
+			var RulesWriter =
+				new Wonka.BizRulesEngine.Writers.WonkaBizRulesXmlWriter(poEngine);
+
+			return RulesWriter.ExportXmlString();
 		}
 	}
 }

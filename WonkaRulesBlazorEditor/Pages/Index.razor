@@ -96,7 +96,7 @@ Use this utility to view/edit your Wonka RuleTree.
                         <RadzenSelectBar @bind-Value="addNethRuleOpChoice" TValue="int" Change="@((args) => AddNethRuleOpChange(args, "SelectBar with single selection"))" Style="margin-bottom: 20px;">
                             <Items>
                                 <RadzenSelectBarItem Text="EOA Balance" Value="1" />
-                                <RadzenSelectBarItem Text="Contract Method" Value="2" />
+                                <RadzenSelectBarItem Text="ERC20 Contract" Value="2" />
                             </Items>
                         </RadzenSelectBar>
                         <br />
@@ -165,7 +165,10 @@ Use this utility to view/edit your Wonka RuleTree.
                         <h4>Upload New RuleTree to IPFS (using the name below):</h4>
                         <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsTreeFileNameHandler(args, "TextBox"))" />
                         <br />
-                        <RadzenButton Text="Upload" Click="@((args) => PublishTreeToIpfsHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+						<div class="row">
+							<RadzenButton Text="Preview" Click="@((args) => PreviewTreeHandler(args, "Button with text"))" Style="margin-left: 15px; margin-bottom: 10px; width: 150px" />
+							<RadzenButton Text="Upload" Click="@((args) => PublishTreeToIpfsHandler(args, "Button with text"))" Style="margin-left: 30px; margin-bottom: 10px; width: 150px" />
+					    </div>
                     </RadzenCard>
                 </RadzenTabsItem>
             </Tabs>
@@ -177,8 +180,8 @@ Use this utility to view/edit your Wonka RuleTree.
 
 @code {
 
-	const string CONST_INFURA_IPFS_GATEWAY_URL = BlazorAppWonkaExtensions.CONST_INFURA_IPFS_GATEWAY_URL;
-	const string CONST_RULES_FILE_IPFS_KEY     = BlazorAppWonkaExtensions.CONST_RULES_FILE_IPFS_KEY;
+	const string CONST_INFURA_IPFS_GATEWAY_URL = BlazorAppNethereumExtensions.CONST_INFURA_IPFS_GATEWAY_URL;
+	const string CONST_RULES_FILE_IPFS_KEY     = BlazorAppNethereumExtensions.CONST_RULES_FILE_IPFS_KEY;
 
 	bool   addRuleNotOp       = false;
 	int    addRuleSetId       = 0;
@@ -209,6 +212,7 @@ Use this utility to view/edit your Wonka RuleTree.
 	string currRulesUrl  = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
 	string currRuleName  = "";
 	string currErrMsg    = "";
+	string currXml       = "";
 
 	WonkaBizRuleTreeReport currTreeReport = null;
 	WonkaBizRulesEngine    rulesEngine    = null;
@@ -430,7 +434,7 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		try
 		{
-			TargetRuleSet.AddNewNethereumRule(rulesEngine.RefEnvHandle, addRuleDesc, addRuleTargetAttr, "1", addNethRuleAddress, addRuleValue1, addRuleValue2);
+			TargetRuleSet.AddNewNethereumRule(rulesEngine.RefEnvHandle, addRuleDesc, addRuleTargetAttr, addNethRuleTypeNum, addNethRuleAddress, addRuleValue1, addRuleValue2);
 
 			ShowRuleAddSuccessDialog().ConfigureAwait(false);
 
@@ -498,6 +502,28 @@ Use this utility to view/edit your Wonka RuleTree.
 		ipfsTreePath = value;
 
 		StateHasChanged();
+	}
+
+	void PreviewTreeHandler(MouseEventArgs args, string buttonName)
+	{
+		try
+		{
+			currXml = rulesEngine.ToXml();
+
+			ShowPreviewDialog().ConfigureAwait(false);
+
+			StateHasChanged();
+		}
+		catch (Wonka.BizRulesEngine.WonkaBizRuleException ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
 	}
 
 	void PublishReportToIpfsHandler(MouseEventArgs args, string buttonName)
@@ -833,6 +859,17 @@ Use this utility to view/edit your Wonka RuleTree.
 				</div>
 			</div>
 		</RadzenCard>);
+
+	async Task ShowPreviewDialog() => await dialogService.OpenAsync("PREVIEW", ds =>
+		@<RadzenCard Style="padding: 20px;">
+            <RadzenTextArea @bind-Value="@currXml" Cols="250" Rows="25" Style="margin-bottom: 20px" />
+			<div class="row">
+				<div class="col-md-12">
+					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
+				</div>
+			</div>
+		</RadzenCard>);
+
 
 	async Task ShowPublishSuccessDialog() => await dialogService.OpenAsync("SUCCESS!", ds =>
 		@<RadzenCard Style="padding: 20px;">
