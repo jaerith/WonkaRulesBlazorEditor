@@ -148,7 +148,8 @@ namespace WonkaRulesBlazorEditor.Extensions
 					NewRule.DescRuleId  = psAddRuleDesc;
 				}
 
-				NewRule.NotOperator = pbAddRuleNotOp;
+				NewRule.ParentRuleSetId = poRuleSet.RuleSetId;
+				NewRule.NotOperator     = pbAddRuleNotOp;
 
 				poRuleSet.AddRule(NewRule);
 			}
@@ -384,24 +385,12 @@ namespace WonkaRulesBlazorEditor.Extensions
 				{
 					if (TmpRule.DescRuleId == psSoughtId)
 						return TmpRule;
-					else
-					{
-						FoundRule = FindRuleById(TmpChildSet, psSoughtId);
-						if (FoundRule.RuleId > 0)
-							return FoundRule;
-					}
 				}
 
 				foreach (var TmpRule in TmpChildSet.AssertiveRules)
 				{
 					if (TmpRule.DescRuleId == psSoughtId)
 						return TmpRule;
-					else
-					{
-						FoundRule = FindRuleById(TmpChildSet, psSoughtId);
-						if (FoundRule.RuleId > 0)
-							return FoundRule;
-					}
 				}
 
 				FoundRule = FindRuleById(TmpChildSet, psSoughtId);
@@ -422,24 +411,12 @@ namespace WonkaRulesBlazorEditor.Extensions
 				{
 					if (TmpRule.DescRuleId == psSoughtId)
 						return TmpRule;
-					else
-					{
-						FoundRule = FindRuleById(TmpChildSet, psSoughtId);
-						if (FoundRule.RuleId > 0)
-							return FoundRule;
-					}
 				}
 
 				foreach (var TmpRule in TmpChildSet.AssertiveRules)
 				{
 					if (TmpRule.DescRuleId == psSoughtId)
 						return TmpRule;
-					else
-					{
-						FoundRule = FindRuleById(TmpChildSet, psSoughtId);
-						if (FoundRule.RuleId > 0)
-							return FoundRule;
-					}
 				}
 
 				FoundRule = FindRuleById(TmpChildSet, psSoughtId);
