@@ -31,6 +31,7 @@ namespace WonkaRulesBlazorEditor
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddSingleton<WeatherForecastService>();
+            services.AddSingleton<IpfsService>();
             services.AddScoped<DialogService>();
             services.AddScoped<NotificationService>();
         }

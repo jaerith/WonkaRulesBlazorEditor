@@ -6,6 +6,9 @@
 @page "/textarea"
 @page "/tree"
 
+@using WonkaRulesBlazorEditor.Data
+@inject IpfsService publishService
+
 @inject DialogService  dialogService
 
 <RadzenDialog />
@@ -99,7 +102,8 @@ Use this utility to view/edit your Wonka RuleTree.
                         <RadzenSelectBar @bind-Value="addNethRuleOpChoice" TValue="int" Change="@((args) => AddNethRuleOpChange(args, "SelectBar with single selection"))" Style="margin-bottom: 20px;">
                             <Items>
                                 <RadzenSelectBarItem Text="EOA Balance" Value="1" />
-                                <RadzenSelectBarItem Text="ERC20 Contract" Value="2" />
+                                <RadzenSelectBarItem Text="ERC20 Transfer Events" Value="2" />
+                                <!-- <RadzenSelectBarItem Text="ERC20 Balance" Value="3" /> -->
                             </Items>
                         </RadzenSelectBar>
                         <br />
@@ -536,9 +540,9 @@ Use this utility to view/edit your Wonka RuleTree.
 			if (currTreeReport != null)
 			{
 				/*
-				 * NOTE: Does not yet work correctly
+				 * NOTE: Not yet working
 				 * 
-				ipfsHash = currTreeReport.PublishReportToIpfs(ipfsRptPath).Result;
+				ipfsHash = currTreeReport.PublishReportToIpfs(ipfsRptPath, publishService).Result;
 
 				ShowPublishSuccessDialog().ConfigureAwait(false);
 				 */
@@ -563,7 +567,7 @@ Use this utility to view/edit your Wonka RuleTree.
 		try
 		{
 			/*
-			 * NOTE: Does not yet work correctly
+			 * NOTE: Not yet working
 			 * 
 			ipfsHash = rulesEngine.PublishRulesToIpfs(ipfsTreePath);
 

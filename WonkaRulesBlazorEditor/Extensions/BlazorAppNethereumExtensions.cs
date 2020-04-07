@@ -18,7 +18,7 @@ using Nethereum.Web3;
 using Wonka.BizRulesEngine;
 using Wonka.BizRulesEngine.Reporting;
 
-using WonkaRulesBlazorEditor.Services;
+using WonkaRulesBlazorEditor.Data;
 
 namespace WonkaRulesBlazorEditor.Extensions
 {
@@ -101,7 +101,7 @@ namespace WonkaRulesBlazorEditor.Extensions
 			ulong nMinBlockNum = 0;
 			ulong nMaxBlockNum = 0;
 
-			var url  = CONST_TEST_INFURA_URL;
+			var url = CONST_TEST_INFURA_URL;
 			var web3 = new Web3(url);
 
 			// This is the contract address of the DAI Stablecoin v1.0 ERC20 token on mainnet
@@ -120,7 +120,7 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 			// Just examine a few blocks by specifying start and end blocks
 			var filter
-				= transferEventHandler.CreateFilterInput( fromBlock: new BlockParameter(nMinBlockNum), toBlock: new BlockParameter(nMaxBlockNum));
+				= transferEventHandler.CreateFilterInput(fromBlock: new BlockParameter(nMinBlockNum), toBlock: new BlockParameter(nMaxBlockNum));
 
 			var logs = transferEventHandler.GetAllChanges(filter).Result;
 
@@ -140,11 +140,11 @@ namespace WonkaRulesBlazorEditor.Extensions
 		// NOTE: This code will need to be modified in order to work correctly
 		public static async Task<string> RegisterOnENS(this WonkaBizRulesEngine poEngine)
 		{
-		    var durationInDays = 365; // how long we are going to rent the domain for
+			var durationInDays = 365; // how long we are going to rent the domain for
 
-		    var ourName = "supersillynameformonkeys"; // Our xxxxx.eth domain name
-		    var owner   = "0x12890d2cce102216644c59dae5baed380d84830c"; // Owner of the domain
-		    var secret  = "animals in the forest";  //This is the commitment secret,
+			var ourName = "supersillynameformonkeys"; // Our xxxxx.eth domain name
+			var owner   = "0x12890d2cce102216644c59dae5baed380d84830c"; // Owner of the domain
+			var secret  = "animals in the forest";  //This is the commitment secret,
 
 			// it should be unique and remember it to be able to finalise your registration
 			var account = new Nethereum.Web3.Accounts.Account("YOURPRIVATE KEY");
@@ -171,19 +171,17 @@ namespace WonkaRulesBlazorEditor.Extensions
 		}
 
 		public static async Task<string> PublishReportToIpfs(this WonkaBizRuleTreeReport poReport,
-			                                                                      string psIpfsFilePath,
-																	                bool pbPinFlag = true,
-                                                                                  string psIpfsGateway = CONST_INFURA_IPFS_API_GATEWAY_URL)
+																				  string psIpfsFilePath,
+																			 IpfsService poIpfsService,
+																					bool pbPinFlag = true,
+																				  string psIpfsGateway = CONST_INFURA_IPFS_API_GATEWAY_URL)
 		{
 			string sIpfsHash = "";
 			string sReport   = "";
 
-			var ipfsSvc = new IpfsService(psIpfsGateway);
-
-			sReport = poReport.GetErrors();
-
 			// NOTE: Not yet ready
 			// sReport = poReport.SerializeToXml();
+			sReport = poReport.GetErrors();
 
 			if (String.IsNullOrEmpty(psIpfsFilePath))
 				psIpfsFilePath = "testreport";
@@ -191,34 +189,22 @@ namespace WonkaRulesBlazorEditor.Extensions
 			if (String.IsNullOrEmpty(sReport))
 				throw new Exception("ERROR!  No report to be serialized.");
 
-			var IpfsNode = await ipfsSvc.AddTextAsync(sReport).ConfigureAwait(false);
+			var IpfsNode =
+				await poIpfsService.AddTextAsync(psIpfsGateway, sReport, psIpfsFilePath, pbPinFlag).ConfigureAwait(false);
 
 			sIpfsHash = IpfsNode.Hash.ToString();
-
-			/*
-			 * NOTE: Does not yet work due to hanging
-			 * 
-			using (MemoryStream RulesXmlInputStream = new MemoryStream(Encoding.UTF8.GetBytes(sReport)))
-			{
-				var IpfsFileNode =
-					ipfsClient.FileSystem.AddAsync(RulesXmlInputStream, psIpfsFilePath, new AddFileOptions() { Pin = pbPinFlag }).Result;
-
-				sIpfsHash = IpfsFileNode.Id.ToString();
-			}
-			*/
 
 			return sIpfsHash;
 		}
 
 		public static async Task<string> PublishRulesToIpfs(this WonkaBizRulesEngine poEngine,
-			                                                                  string psIpfsFilePath,
-																                bool pbPinFlag = true,
-																              string psIpfsGateway = CONST_INFURA_IPFS_API_GATEWAY_URL)
+																			  string psIpfsFilePath,
+																		 IpfsService poIpfsService,
+																				bool pbPinFlag = true,
+																			  string psIpfsGateway = CONST_INFURA_IPFS_API_GATEWAY_URL)
 		{
 			string sIpfsHash = "";
 			string sRulesXml = "";
-
-			var ipfsSvc = new IpfsService(psIpfsGateway);
 
 			sRulesXml = poEngine.ToXml();
 
@@ -228,25 +214,12 @@ namespace WonkaRulesBlazorEditor.Extensions
 			if (String.IsNullOrEmpty(sRulesXml))
 				throw new Exception("ERROR!  No rules XMl serialized from the rules engine.");
 
-			var IpfsNode = await ipfsSvc.AddTextAsync(sRulesXml).ConfigureAwait(false);
+			var IpfsNode =
+				await poIpfsService.AddTextAsync(psIpfsGateway, sRulesXml, psIpfsFilePath, pbPinFlag).ConfigureAwait(false);
 
 			sIpfsHash = IpfsNode.Hash.ToString();
 
-			/*
-			 * NOTE: Does not yet work due to hanging
-			 * 
-			var sIpfsFileNode =
-				ipfsClient.FileSystem.AddFileAsync(psIpfsFilePath, new AddFileOptions() { Pin = pbPinFlag }).Result;
-
-			using (MemoryStream RulesXmlInputStream = new MemoryStream(Encoding.UTF8.GetBytes(sRulesXml)))
-			{
-				var IpfsFileNode =
-					ipfsClient.FileSystem.AddAsync(RulesXmlInputStream, psIpfsFilePath, new AddFileOptions() { Pin = pbPinFlag }).Result;
-
-				sIpfsHash = IpfsFileNode.Id.ToString();
-			}
-			*/
-
 			return sIpfsHash;
-		}	}
+		}
+	}
 }

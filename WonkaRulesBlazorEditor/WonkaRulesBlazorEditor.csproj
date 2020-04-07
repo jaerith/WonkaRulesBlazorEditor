@@ -8,8 +8,8 @@
     <PackageReference Include="Radzen.Blazor" Version="2.3.7" />
     <PackageReference Include="Nethereum.Web3" Version="3.7.1" />
     <PackageReference Include="Nethereum.Hex" Version="3.7.1" />
-    <PackageReference Include="Ipfs.Http.Client" Version="0.33.0" />
     <PackageReference Include="Nethereum.ENS" Version="3.7.1" />
+    <PackageReference Include="Ipfs.Http.Client" Version="0.33.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,6 +38,5 @@
   
   <ItemGroup>
     <Folder Include="Extensions\" />
-    <Folder Include="Services\" />
   </ItemGroup>
 </Project>
