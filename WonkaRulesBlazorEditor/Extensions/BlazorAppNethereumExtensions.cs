@@ -1,9 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Data;
-using System.IO;
-using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,6 +17,12 @@ using WonkaRulesBlazorEditor.Data;
 
 namespace WonkaRulesBlazorEditor.Extensions
 {
+	[Function("balanceOf", "uint256")]
+	public class BalanceOfFunction : FunctionMessage
+	{
+		[Parameter("address", "_owner", 1)] public string Owner { get; set; }
+	}
+
 	[Event("Transfer")]
 	public class TransferEventDTO : IEventDTO
 	{
@@ -45,9 +46,59 @@ namespace WonkaRulesBlazorEditor.Extensions
 		public const string CONST_TEST_INFURA_URL             = "https://mainnet.infura.io/v3/7238211010344719ad14a89db874158c";
 		public const string CONST_ETH_FNDTN_EOA_ADDRESS       = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae";
 		public const string CONST_DAI_TOKEN_CTRCT_ADDRESS     = "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359";
+		public const string CONST_MAKER_ERC20_CTRCT_ADDRESS   = "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2";
 		public const string CONST_RULES_FILE_IPFS_KEY         = "QmXcsGDQthxbGW8C3Sx9r4tV9PGSj4MxJmtXF7dnXN5XUT";
 
 		#endregion
+
+		/*
+		 * NOTE: This type of custom rule works to assign something to the target attribute, like normal custom operators -
+		 *       however, it has the extra duty to raise a flag if no events are found, so it returns the audit review flag
+		 *       in the case of success and a failure if empty
+		 */
+		public static string AnyEventsInBlockRange(string psContractAddress, string psMinBlockValue, string psMaxBlockValue, string psDummyValue = "")
+		{
+			// NOTE: Empty value indicates rule failure
+			string sAuditReviewFlag = "";
+
+			ulong nMinBlockNum = 0;
+			ulong nMaxBlockNum = 0;
+
+			var url  = CONST_TEST_INFURA_URL;
+			var web3 = new Web3(url);
+
+			// This is the contract address of the DAI Stablecoin v1.0 ERC20 token on mainnet
+			// See https://etherscan.io/address/0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359
+			var erc20TokenContractAddress = psContractAddress;
+			if (String.IsNullOrEmpty(psContractAddress))
+				erc20TokenContractAddress = CONST_DAI_TOKEN_CTRCT_ADDRESS;
+
+			var transferEventHandler = web3.Eth.GetEvent<TransferEventDTO>(erc20TokenContractAddress);
+
+			if (!String.IsNullOrEmpty(psMinBlockValue))
+				UInt64.TryParse(psMinBlockValue, out nMinBlockNum);
+
+			if (!String.IsNullOrEmpty(psMaxBlockValue))
+				UInt64.TryParse(psMaxBlockValue, out nMaxBlockNum);
+
+			// Just examine a few blocks by specifying start and end blocks
+			var filter
+				= transferEventHandler.CreateFilterInput(fromBlock: new BlockParameter(nMinBlockNum), toBlock: new BlockParameter(nMaxBlockNum));
+
+			var logs = transferEventHandler.GetAllChanges(filter).Result;
+
+			/*
+			Console.WriteLine($"Token Transfer Events for ERC20 Token at Contract Address: {erc20TokenContractAddress}");
+			foreach (var logItem in logs)
+				Console.WriteLine(
+					$"tx:{logItem.Log.TransactionHash} from:{logItem.Event.From} to:{logItem.Event.To} value:{logItem.Event.Value}");
+			 */
+
+			if (logs.Count > 0)
+				sAuditReviewFlag = "Y";
+
+			return sAuditReviewFlag;
+		}
 
 		public static string CheckBalanceIsWithinRange(string psEOA, string psMinValue, string psMaxValue, string psDummyValue)
 		{
@@ -88,53 +139,31 @@ namespace WonkaRulesBlazorEditor.Extensions
 			return sStatusCd;
 		}
 
-		/*
-		 * NOTE: This type of custom rule works to assign something to the target attribute, like normal custom operators -
-		 *       however, it has the extra duty to raise a flag if no events are found, so it returns the audit review flag
-		 *       in the case of success and a failure if empty
-		 */
-		public static string AnyEventsInBlockRange(string psContractAddress, string psMinBlockValue, string psMaxBlockValue, string psDummyValue = "")
+		public static string GetERC20Balance(string psContractAddress, string psOwner, string psDummyValue1 = "", string psDummyValue2 = "")
 		{
-			// NOTE: Empty value indicates rule failure
-			string sAuditReviewFlag = "";
-
-			ulong nMinBlockNum = 0;
-			ulong nMaxBlockNum = 0;
-
-			var url = CONST_TEST_INFURA_URL;
+			var url  = CONST_TEST_INFURA_URL;
 			var web3 = new Web3(url);
 
-			// This is the contract address of the DAI Stablecoin v1.0 ERC20 token on mainnet
-			// See https://etherscan.io/address/0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359
+			//Querying the Maker smart contract https://etherscan.io/address/0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2
 			var erc20TokenContractAddress = psContractAddress;
 			if (String.IsNullOrEmpty(psContractAddress))
-				erc20TokenContractAddress = CONST_DAI_TOKEN_CTRCT_ADDRESS;
+				erc20TokenContractAddress = CONST_MAKER_ERC20_CTRCT_ADDRESS;
 
-			var transferEventHandler = web3.Eth.GetEvent<TransferEventDTO>(erc20TokenContractAddress);
+			//Setting the owner https://etherscan.io/tokenholdings?a=0x8ee7d9235e01e6b42345120b5d270bdb763624c7
+			if (String.IsNullOrEmpty(psOwner))
+				psOwner = "0x8ee7d9235e01e6b42345120b5d270bdb763624c7";
 
-			if (!String.IsNullOrEmpty(psMinBlockValue))
-				UInt64.TryParse(psMinBlockValue, out nMinBlockNum);
+			var balanceOfMessage = new BalanceOfFunction() { Owner = psOwner };
 
-			if (!String.IsNullOrEmpty(psMaxBlockValue))
-				UInt64.TryParse(psMaxBlockValue, out nMaxBlockNum);
+			//Creating a new query handler
+			var queryHandler = web3.Eth.GetContractQueryHandler<BalanceOfFunction>();
 
-			// Just examine a few blocks by specifying start and end blocks
-			var filter
-				= transferEventHandler.CreateFilterInput(fromBlock: new BlockParameter(nMinBlockNum), toBlock: new BlockParameter(nMaxBlockNum));
+			var balance =
+				queryHandler.QueryAsync<BigInteger>(erc20TokenContractAddress, balanceOfMessage).Result;
 
-			var logs = transferEventHandler.GetAllChanges(filter).Result;
+			string sBalance = balance.ToString();
 
-			/*
-			Console.WriteLine($"Token Transfer Events for ERC20 Token at Contract Address: {erc20TokenContractAddress}");
-			foreach (var logItem in logs)
-				Console.WriteLine(
-					$"tx:{logItem.Log.TransactionHash} from:{logItem.Event.From} to:{logItem.Event.To} value:{logItem.Event.Value}");
-			 */
-
-			if (logs.Count > 0)
-				sAuditReviewFlag = "Y";
-
-			return sAuditReviewFlag;
+			return sBalance;
 		}
 
 		// NOTE: This code will need to be modified in order to work correctly

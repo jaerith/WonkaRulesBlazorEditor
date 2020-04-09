@@ -232,6 +232,27 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 				NewRule = CustomOpRule;
 			}
+			else if (nRuleTypeNum == 3)
+			{
+				if (!targetAttr.IsNumeric && !targetAttr.IsDecimal)
+					throw new DataException("ERROR!  Cannot perform arithmetic limit on a non-numeric value.");
+
+				WonkaBizSource DummySource =
+					new WonkaBizSource("ERC20", psAddRuleEthAddress, "", "", "", "", "", null);
+
+				CustomOperatorRule CustomOpRule =
+					new CustomOperatorRule(mnRuleCounter++,
+										   TARGET_RECORD.TRID_NEW_RECORD,
+										   targetAttr.AttrId,
+										   "GET_ERC20_BALANCE",
+										   BlazorAppNethereumExtensions.GetERC20Balance,
+										   DummySource);
+
+				CustomOpRule.AddDomainValue(psAddRuleEthAddress, true, TARGET_RECORD.TRID_NONE);
+				CustomOpRule.AddDomainValue(psAddRuleValue1,     true, TARGET_RECORD.TRID_NONE);
+
+				NewRule = CustomOpRule;
+			}
 
 			if (NewRule != null)
 			{
