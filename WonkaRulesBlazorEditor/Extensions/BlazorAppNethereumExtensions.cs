@@ -166,6 +166,13 @@ namespace WonkaRulesBlazorEditor.Extensions
 			return sBalance;
 		}
 
+		public static string GetContractSimpleMethodValue(string psContractABI, string psContractAddress, string psFunctionName, string psDummyValue = "")
+		{
+			var url = CONST_TEST_INFURA_URL;
+
+			return new Web3(url).Eth.GetContract(psContractABI, psContractAddress).GetFunction(psFunctionName).CallAsync<string>().Result;
+		}
+
 		// NOTE: This code will need to be modified in order to work correctly
 		public static async Task<string> RegisterOnENS(this WonkaBizRulesEngine poEngine)
 		{
