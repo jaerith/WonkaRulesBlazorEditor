@@ -7,12 +7,16 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Serialization;
 
 using Wonka.BizRulesEngine;
 using Wonka.BizRulesEngine.Reporting;
 using Wonka.BizRulesEngine.RuleTree;
 using Wonka.BizRulesEngine.RuleTree.RuleTypes;
 using Wonka.MetaData;
+
+using WonkaRulesBlazorEditor.Data;
 
 namespace WonkaRulesBlazorEditor.Extensions
 {
@@ -252,6 +256,51 @@ namespace WonkaRulesBlazorEditor.Extensions
 				CustomOpRule.AddDomainValue(psAddRuleValue1,     true, TARGET_RECORD.TRID_NONE);
 
 				NewRule = CustomOpRule;
+			}
+			else if (nRuleTypeNum == 4)
+			{
+				if (!targetAttr.IsNumeric && !targetAttr.IsDecimal)
+					throw new DataException("ERROR!  Cannot perform arithmetic limit on a non-numeric value.");
+
+				WonkaBizSource DummySource =
+					new WonkaBizSource("ContractName", psAddRuleEthAddress, "", "", "", "", "", null);
+
+				CustomOperatorRule CustomOpRule =
+					new CustomOperatorRule(mnRuleCounter++,
+										   TARGET_RECORD.TRID_NEW_RECORD,
+										   targetAttr.AttrId,
+										   "CALL_SIMPLE_CONTRACT_METHOD",
+										   BlazorAppNethereumExtensions.GetContractSimpleMethodValue,
+										   DummySource);
+
+				var sAltConfigIpfsUrl = psAddRuleValue1;
+				var sFunctionName     = psAddRuleValue2;
+
+				if (String.IsNullOrEmpty(sAltConfigIpfsUrl))
+					sAltConfigIpfsUrl = BlazorAppNethereumExtensions.CONST_INFURA_IPFS_GATEWAY_URL + "/QmYDp4ocbF1AVSuY1zBhXa6P4c2oaPkHi2jaSE3HU6bQnQ";
+
+				using (var client = new System.Net.Http.HttpClient())
+				{
+					var sConfigDataXml = client.GetStringAsync(sAltConfigIpfsUrl).Result;
+
+					var configData = ReadConfigXml(sConfigDataXml);
+
+					if (!String.IsNullOrEmpty(configData.HostUrl))
+					    CustomOpRule.AddDomainValue(configData.HostUrl, true, TARGET_RECORD.TRID_NONE);
+					else
+						CustomOpRule.AddDomainValue(BlazorAppNethereumExtensions.CONST_TEST_INFURA_URL, true, TARGET_RECORD.TRID_NONE);
+
+					CustomOpRule.AddDomainValue(configData.ContractABI, true, TARGET_RECORD.TRID_NONE);
+
+					if (!String.IsNullOrEmpty(psAddRuleEthAddress))
+						CustomOpRule.AddDomainValue(psAddRuleEthAddress, true, TARGET_RECORD.TRID_NONE);
+					else
+						CustomOpRule.AddDomainValue(configData.ContractAddress, true, TARGET_RECORD.TRID_NONE);
+
+					CustomOpRule.AddDomainValue(sFunctionName, true, TARGET_RECORD.TRID_NONE);
+
+					NewRule = CustomOpRule;
+				}				
 			}
 
 			if (NewRule != null)
@@ -595,6 +644,16 @@ namespace WonkaRulesBlazorEditor.Extensions
 		public static bool IsValidRuleSet(this WonkaBizRuleSet poTargetRuleSet)
 		{
 			return (poTargetRuleSet.ChildRuleSets.Count > 0) || (poTargetRuleSet.AssertiveRules.Count > 0) || (poTargetRuleSet.EvaluativeRules.Count > 0);
+		}
+
+		public static ContractConfig ReadConfigXml(string psConfigXml)
+		{
+			XmlTextReader ConfigXmlReader = new XmlTextReader(new StringReader(psConfigXml));
+			ConfigXmlReader.XmlResolver   = null;
+			ConfigXmlReader.DtdProcessing = DtdProcessing.Ignore;
+			ConfigXmlReader.Namespaces    = false;
+
+			return new XmlSerializer(typeof(ContractConfig), new XmlRootAttribute("ContractConfig")).Deserialize(ConfigXmlReader) as ContractConfig;
 		}
 
         public static void RemoveRuleById(this WonkaBizRuleSet poTargetSet, string psSoughtId)

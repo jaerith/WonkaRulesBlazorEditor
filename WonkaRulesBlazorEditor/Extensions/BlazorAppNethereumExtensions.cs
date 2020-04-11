@@ -166,9 +166,12 @@ namespace WonkaRulesBlazorEditor.Extensions
 			return sBalance;
 		}
 
-		public static string GetContractSimpleMethodValue(string psContractABI, string psContractAddress, string psFunctionName, string psDummyValue = "")
+		public static string GetContractSimpleMethodValue(string psHostUrl, string psContractABI, string psContractAddress, string psFunctionName)
 		{
 			var url = CONST_TEST_INFURA_URL;
+
+			if (!String.IsNullOrEmpty(psHostUrl))
+				url = psHostUrl;
 
 			return new Web3(url).Eth.GetContract(psContractABI, psContractAddress).GetFunction(psFunctionName).CallAsync<string>().Result;
 		}
