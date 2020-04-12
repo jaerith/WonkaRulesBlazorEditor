@@ -137,6 +137,11 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 					DmnRule.DomainCache = RuleDomain;
 
+					foreach (string sTmpValue in RuleDomain)
+					{
+						DmnRule.DomainValueProps.Add(sTmpValue, new WonkaBizRuleValueProps() { IsLiteralValue = true });
+					}
+
 					NewRule = DmnRule;
 				}
 			}
@@ -355,7 +360,15 @@ namespace WonkaRulesBlazorEditor.Extensions
 			foreach (var ReportNode in report.GetRuleSetSevereFailures())
 			{
 				if (ReportNode.RuleResults.Count > 0)
-					ErrorReport.Append(ReportNode.RuleResults[0].VerboseError.Replace("/", ""));
+				{
+					foreach (var RuleReportNode in ReportNode.RuleResults)
+					{
+						if (ErrorReport.Length > 0)
+							ErrorReport.Append("\n");
+
+						ErrorReport.Append(RuleReportNode.VerboseError.Replace("/", ""));
+					}
+				}
 				else
 					ErrorReport.Append(ReportNode.ErrorDescription);
 			}
