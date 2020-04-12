@@ -34,7 +34,7 @@ Use this utility to view/edit your Wonka RuleTree.
     </div>
 
     <div class="col-md-6">
-        <RadzenTabs>
+        <RadzenTabs Change="@(idx => SwitchTab(idx, "Tabs"))">
             <Tabs>
                 <RadzenTabsItem Text="Details">
                     <RadzenCard style="overflow: auto;height:500px;">
@@ -112,10 +112,10 @@ Use this utility to view/edit your Wonka RuleTree.
                         <RadzenTextBox Style="margin-bottom: 20px" Placeholder="0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae" Change="@(args => AddNethRuleAddressHandler(args, "TextBox"))" />
                         <br />
                         <h4>Value1/MinValue:</h4>
-                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleValue1Handler(args, "TextBox"))" />
+                        <RadzenTextBox @bind-Value="@addRuleValue1" Style="margin-bottom: 20px" Change="@(args => AddRuleValue1Handler(args, "TextBox"))" />
                         <br />
                         <h4>Value2/MaxValue:</h4>
-                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => AddRuleValue2Handler(args, "TextBox"))" />
+                        <RadzenTextBox @bind-Value="@addRuleValue2" Style="margin-bottom: 20px" Change="@(args => AddRuleValue2Handler(args, "TextBox"))" />
                         <!--
 						<br />
 						<h4>Contract ABI (if applicable):</h4>
@@ -380,6 +380,27 @@ Use this utility to view/edit your Wonka RuleTree.
 	{
 		addNethRuleTypeNum = string.Join(", ", value);
 
+		if (addNethRuleTypeNum == "1")
+		{
+			addRuleValue1 = "[Min_Balance]";
+			addRuleValue2 = "[Max_Balance]";
+		}
+		else if (addNethRuleTypeNum == "2")
+		{
+			addRuleValue1 = "[Block_Range_Min]";
+			addRuleValue2 = "[Block_Range_Max]";
+		}
+		else if (addNethRuleTypeNum == "3")
+		{
+			addRuleValue1 = "[Owner_EOA_Address]";
+			addRuleValue2 = "N/A";
+		}
+		else if (addNethRuleTypeNum == "4")
+		{
+			addRuleValue1 = "[Contract_Config_Http_Url]";
+			addRuleValue2 = "[Contract_Function_Name]";
+		}
+
 		StateHasChanged();
 	}
 
@@ -629,11 +650,13 @@ Use this utility to view/edit your Wonka RuleTree.
 
 				if (RulesReport.OverallRuleTreeResult == ERR_CD.CD_SUCCESS)
 				{
+					reportMsg = "";
+
 					ShowEngineSuccessDialog().ConfigureAwait(false);
 				}
 				else
 				{
-					reportMsg = RulesReport.GetErrors();
+					reportMsg = "ERROR!\n" + RulesReport.GetErrors();
 				}
 
 				StateHasChanged();
@@ -703,7 +726,7 @@ Use this utility to view/edit your Wonka RuleTree.
 		if ((poNewSet.ErrorSeverity == RULE_SET_ERR_LVL.ERR_LVL_WARNING) && (poNewSet.ChildRuleSets.Count == 0))
 			warningRuleSetNames.Add(poNewSet.GetRuleSetDescription());
 
-		if ((poNewSet.RulesEvalOperator == RULE_OP.OP_AND) && (poNewSet.ChildRuleSets.Count > 0))
+		if (poNewSet.RulesEvalOperator == RULE_OP.OP_AND)
 			opAndRuleSetNames.Add(poNewSet.GetRuleSetDescription());
 	}
 
@@ -829,7 +852,7 @@ Use this utility to view/edit your Wonka RuleTree.
 				   .ForEach(x => warningRuleSetNames.Add(x.GetRuleSetDescription()));
 
 		rulesEngine.AllRuleSets
-				   .Where(x => (x.RulesEvalOperator == RULE_OP.OP_AND) && (x.ChildRuleSets.Count > 0))
+				   .Where(x => (x.RulesEvalOperator == RULE_OP.OP_AND))
 				   .ToList()
 				   .ForEach(x => opAndRuleSetNames.Add(x.GetRuleSetDescription()));
 	}
@@ -857,6 +880,13 @@ Use this utility to view/edit your Wonka RuleTree.
 		}
 		else
 			details["Detail"] = sDetails;
+
+		StateHasChanged();
+	}
+
+	void SwitchTab(int pnTabIdx, string tabName)
+	{
+		addRuleValue1 = addRuleValue2 = "";
 
 		StateHasChanged();
 	}
