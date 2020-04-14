@@ -8,6 +8,7 @@ using Nethereum.Contracts;
 using Nethereum.ENS;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.RPC.Eth.DTOs;
+using Nethereum.Signer;
 using Nethereum.Web3;
 
 using Wonka.BizRulesEngine;
@@ -133,6 +134,23 @@ namespace WonkaRulesBlazorEditor.Extensions
 				else if ((nMinValue > -1) && (BigInteger.Compare(balance, minValue) > 0))
 					sStatusCd = BlazorAppWonkaExtensions.CONST_STATUS_CD_ACTIVE;
 				else if ((nMaxValue > -1) && (BigInteger.Compare(balance, maxValue) < 0))
+					sStatusCd = BlazorAppWonkaExtensions.CONST_STATUS_CD_ACTIVE;
+			}
+
+			return sStatusCd;
+		}
+
+		public static string DetermineStatusByValidatingSignature(string psEOA, string psMsg, string psSignature, string psDummyValue)
+		{
+			string sStatusCd = BlazorAppWonkaExtensions.CONST_STATUS_CD_INACTIVE;
+
+			if (!String.IsNullOrEmpty(psEOA) && !String.IsNullOrEmpty(psMsg) && !String.IsNullOrEmpty(psSignature))
+			{
+				var signer = new EthereumMessageSigner();
+
+				var addressRecovered = signer.HashAndEcRecover(psMsg, psSignature);
+
+				if (addressRecovered == psEOA)
 					sStatusCd = BlazorAppWonkaExtensions.CONST_STATUS_CD_ACTIVE;
 			}
 

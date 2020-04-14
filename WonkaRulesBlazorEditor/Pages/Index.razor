@@ -105,6 +105,7 @@ Use this utility to view/edit your Wonka RuleTree.
                                 <RadzenSelectBarItem Text="ERC20 Transfers" Value="2" />
                                 <RadzenSelectBarItem Text="ERC20 Balance" Value="3" />
                                 <RadzenSelectBarItem Text="Contract Method" Value="4" />
+                                <RadzenSelectBarItem Text="Validate Signature" Value="5" />
                             </Items>
                         </RadzenSelectBar>
                         <br />
@@ -399,6 +400,13 @@ Use this utility to view/edit your Wonka RuleTree.
 		{
 			addRuleValue1 = "[Contract_Config_Http_Url]";
 			addRuleValue2 = "[Contract_Function_Name]";
+		}
+		else if (addNethRuleTypeNum == "5")
+		{			
+			addRuleValue1 = "[AttributeNameUsedInSignature]";
+
+			// NOTE: In order to be actually useful, this should also be an Attribute
+			addRuleValue2 = "[Signature]";
 		}
 
 		StateHasChanged();

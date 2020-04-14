@@ -182,7 +182,7 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 			WonkaRefAttr targetAttr = poRefEnv.GetAttributeByAttrName(psAddRuleTargetAttr);
 
-			if ((nRuleTypeNum == 1) | (nRuleTypeNum == 2))
+			if ((nRuleTypeNum == 1) | (nRuleTypeNum == 2) || (nRuleTypeNum == 5))
 			{
 				if (targetAttr.IsNumeric || targetAttr.IsDecimal)
 					throw new DataException("ERROR!  Cannot perform offered Nethereum rules on a numeric value.");
@@ -306,6 +306,35 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 					NewRule = CustomOpRule;
 				}				
+			}
+			else if (nRuleTypeNum == 5)
+			{
+				if (targetAttr.AttrName != "AccountStatus")
+					throw new Exception("ERROR!  Cannot add V rule with any attribute target other than AccountStatus.");
+
+				WonkaBizSource DummySource =
+					new WonkaBizSource("ContractName", psAddRuleEthAddress, "", "", "", "", "", null);
+
+				CustomOperatorRule CustomOpRule =
+					new CustomOperatorRule(mnRuleCounter++,
+										   TARGET_RECORD.TRID_NEW_RECORD,
+										   targetAttr.AttrId,
+										   "VALIDATE_SIGNATURE",
+										   BlazorAppNethereumExtensions.DetermineStatusByValidatingSignature,
+										   DummySource);
+
+				var sAttrTarget = psAddRuleValue1;
+				var sSignature  = psAddRuleValue2;
+
+				var TargetAttr  = poRefEnv.GetAttributeByAttrName(sAttrTarget);
+				if (TargetAttr == null)
+					throw new Exception("ERROR!  Cannot add rule since attribute(" + sAttrTarget + ") does not exist!");
+
+				CustomOpRule.AddDomainValue(psAddRuleEthAddress, true, TARGET_RECORD.TRID_NONE);
+				CustomOpRule.AddDomainValue(sAttrTarget,        false, TARGET_RECORD.TRID_NEW_RECORD);
+				CustomOpRule.AddDomainValue(sSignature,          true, TARGET_RECORD.TRID_NONE);
+
+				NewRule = CustomOpRule;
 			}
 
 			if (NewRule != null)
