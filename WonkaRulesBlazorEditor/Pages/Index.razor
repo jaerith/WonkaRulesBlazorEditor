@@ -22,12 +22,21 @@ Use this utility to view/edit your Wonka RuleTree.
 <div class="row">
 
     <div class="col-md-6">
-        <div style="margin-top:20px">Rules File URL:</div>
-        <div class="row">
-            <RadzenTextBox Style="margin-bottom: 20px; width: 500px" Change="@(args => ChooseRulesUrlChange(args, "TextBox"))" Placeholder="@currRulesUrl" MaxLength="1024" />
-            <RadzenButton Text="Open" Click="@((args) => OpenRulesXmlHandler(args, "Button with text"))" Style="margin-bottom: 10px; margin-left: 20px; width: 100px" />
-        </div>
-        <br />
+        <RadzenAccordion>
+            <Items>
+                <RadzenAccordionItem Text="Metadata/Rules" Icon="get_app">
+					<div style="margin-top:20px">Metadata File URL:</div>
+					<div class="row">
+						<RadzenTextBox Style="margin-bottom: 10px; width: 500px" Change="@(args => ChooseMetadataUrlChange(args, "TextBox"))" Placeholder="@currMetadataUrl" MaxLength="1024" />
+					</div>
+					<div style="margin-top:20px">Rules File URL:</div>
+					<div class="row">
+						<RadzenTextBox Style="margin-bottom: 10px; width: 500px" Change="@(args => ChooseRulesUrlChange(args, "TextBox"))" Placeholder="@currRulesUrl" MaxLength="1024" />
+						<RadzenButton Text="Open" Click="@((args) => OpenRulesXmlHandler(args, "Button with text"))" Style="margin-bottom: 10px; margin-left: 20px; width: 100px" />
+					</div>
+                </RadzenAccordionItem>
+			</Items>
+		</RadzenAccordion>
         <RadzenTree Data="@entries" Expand="@LoadFiles" Change="@SelectRow">
             <RadzenTreeLevel Text="@GetTextForNode" />
         </RadzenTree>
@@ -190,6 +199,7 @@ Use this utility to view/edit your Wonka RuleTree.
 @code {
 
 	const string CONST_INFURA_IPFS_GATEWAY_URL = BlazorAppNethereumExtensions.CONST_INFURA_IPFS_GATEWAY_URL;
+	const string CONST_METADATA_FILE_IPFS_KEY  = BlazorAppNethereumExtensions.CONST_METADATA_FILE_IPFS_KEY;
 	const string CONST_RULES_FILE_IPFS_KEY     = BlazorAppNethereumExtensions.CONST_RULES_FILE_IPFS_KEY;
 
 	bool   addRuleNotOp       = false;
@@ -217,11 +227,12 @@ Use this utility to view/edit your Wonka RuleTree.
 	string ipfsRptPath  = null;
 	string ipfsHash     = null;
 
-	int    currRuleSetId = 0;
-	string currRulesUrl  = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
-	string currRuleName  = "";
-	string currErrMsg    = "";
-	string currXml       = "";
+	int    currRuleSetId   = 0;
+	string currMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_METADATA_FILE_IPFS_KEY);
+	string currRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
+	string currRuleName    = "";
+	string currErrMsg      = "";
+	string currXml         = "";
 
 	WonkaBizRuleTreeReport currTreeReport = null;
 	WonkaBizRulesEngine    rulesEngine    = null;
@@ -402,7 +413,7 @@ Use this utility to view/edit your Wonka RuleTree.
 			addRuleValue2 = "[Contract_Function_Name]";
 		}
 		else if (addNethRuleTypeNum == "5")
-		{			
+		{
 			addRuleValue1 = "[AttributeNameUsedInSignature]";
 
 			// NOTE: In order to be actually useful, this should also be an Attribute
@@ -684,6 +695,12 @@ Use this utility to view/edit your Wonka RuleTree.
 
 	#endregion
 
+	void ChooseMetadataUrlChange(string value, string name)
+	{
+		// events.Add(DateTime.Now, $"{name} value changed");
+	}
+
+	// NOTE: Yet to be used appropriately
 	void ChooseRulesUrlChange(string value, string name)
 	{
 		// events.Add(DateTime.Now, $"{name} value changed");

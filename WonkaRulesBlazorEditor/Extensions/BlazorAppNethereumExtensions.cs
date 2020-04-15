@@ -49,6 +49,7 @@ namespace WonkaRulesBlazorEditor.Extensions
 		public const string CONST_DAI_TOKEN_CTRCT_ADDRESS     = "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359";
 		public const string CONST_MAKER_ERC20_CTRCT_ADDRESS   = "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2";
 		public const string CONST_RULES_FILE_IPFS_KEY         = "QmXcsGDQthxbGW8C3Sx9r4tV9PGSj4MxJmtXF7dnXN5XUT";
+		public const string CONST_METADATA_FILE_IPFS_KEY      = "QmYLc2Ej17hHBwz8zmjm4a42h4fbm68hzzpEmQKfVKgYrU";
 
 		#endregion
 
