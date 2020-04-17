@@ -25,15 +25,19 @@ Use this utility to view/edit your Wonka RuleTree.
         <RadzenAccordion>
             <Items>
                 <RadzenAccordionItem Text="Metadata/Rules" Icon="get_app">
-					<div style="margin-top:20px">Metadata File URL:</div>
-					<div class="row">
-						<RadzenTextBox Style="margin-bottom: 10px; width: 500px" Change="@(args => ChooseMetadataUrlChange(args, "TextBox"))" Placeholder="@currMetadataUrl" MaxLength="1024" />
-					</div>
-					<div style="margin-top:20px">Rules File URL:</div>
-					<div class="row">
-						<RadzenTextBox Style="margin-bottom: 10px; width: 500px" Change="@(args => ChooseRulesUrlChange(args, "TextBox"))" Placeholder="@currRulesUrl" MaxLength="1024" />
-						<RadzenButton Text="Open" Click="@((args) => OpenRulesXmlHandler(args, "Button with text"))" Style="margin-bottom: 10px; margin-left: 20px; width: 100px" />
-					</div>
+                    <div style="margin-top:20px">Metadata File URL:</div>
+                    <div class="row">
+                        <RadzenTextBox @bind-Value="@currMetadataUrl" Style="margin-bottom: 10px; width: 500px" Change="@(args => ChooseMetadataUrlChange(args, "TextBox"))" MaxLength="1024" />
+                    </div>
+                    <div style="margin-top:20px">Rules File URL:</div>
+                    <div class="row">
+                        <RadzenTextBox @bind-Value="@currRulesUrl" Style="margin-bottom: 10px; width: 500px" Change="@(args => ChooseRulesUrlChange(args, "TextBox"))" MaxLength="1024" />
+                    </div>
+					<!--
+                    <div class="row">
+                        <RadzenButton Text="Open" Click="@((args) => OpenRulesXmlHandler(args, "Button with text"))" Style="margin-bottom: 10px; margin-left: 20px; width: 100px" />
+                    </div>
+					-->
                 </RadzenAccordionItem>
 			</Items>
 		</RadzenAccordion>
@@ -228,6 +232,7 @@ Use this utility to view/edit your Wonka RuleTree.
 	string ipfsHash     = null;
 
 	int    currRuleSetId   = 0;
+	string origMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_METADATA_FILE_IPFS_KEY);
 	string currMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_METADATA_FILE_IPFS_KEY);
 	string currRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
 	string currRuleName    = "";
@@ -261,6 +266,15 @@ Use this utility to view/edit your Wonka RuleTree.
 		WonkaRefAttr AccountCurrencyAttr = WonkaRefEnv.GetAttributeByAttrName("AccountCurrency");
 		WonkaRefAttr RvwFlagAttr         = WonkaRefEnv.GetAttributeByAttrName("AuditReviewFlag");
 		WonkaRefAttr CreationDtAttr      = WonkaRefEnv.GetAttributeByAttrName("CreationDt");
+
+		if (!String.IsNullOrEmpty(currMetadataUrl) && (currMetadataUrl != origMetadataUrl))
+		{
+			using (var client = new System.Net.Http.HttpClient())
+			{
+				var metadata = client.GetStringAsync(currMetadataUrl).Result;
+				WonkaRefEnv.AppendMetadata(metadata);
+			}
+		}
 
 		using (var client = new System.Net.Http.HttpClient())
 		{
@@ -788,7 +802,7 @@ Use this utility to view/edit your Wonka RuleTree.
 
 		if (!isRuleSet)
 		{
-			builder.AddAttribute(2, "Style", "margin-left: 24px");
+			builder.AddAttribute(2, "Style", "margin-left: 24px; color:deepskyblue");
 		}
 
 		builder.CloseComponent();
