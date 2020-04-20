@@ -202,9 +202,11 @@ Use this utility to view/edit your Wonka RuleTree.
 
 @code {
 
-	const string CONST_INFURA_IPFS_GATEWAY_URL = BlazorAppNethereumExtensions.CONST_INFURA_IPFS_GATEWAY_URL;
-	const string CONST_METADATA_FILE_IPFS_KEY  = BlazorAppNethereumExtensions.CONST_METADATA_FILE_IPFS_KEY;
-	const string CONST_RULES_FILE_IPFS_KEY     = BlazorAppNethereumExtensions.CONST_RULES_FILE_IPFS_KEY;
+	const string CONST_INFURA_IPFS_GATEWAY_URL    = BlazorAppNethereumExtensions.CONST_INFURA_IPFS_GATEWAY_URL;
+	const string CONST_METADATA_FILE_IPFS_KEY     = BlazorAppNethereumExtensions.CONST_METADATA_FILE_IPFS_KEY;
+	const string CONST_RULES_FILE_IPFS_KEY        = BlazorAppNethereumExtensions.CONST_RULES_FILE_IPFS_KEY;
+	const string CONST_VAT_RULES_FILE_IPFS_KEY    = BlazorAppNethereumExtensions.CONST_VAT_RULES_FILE_IPFS_KEY;
+	const string CONST_VAT_METADATA_FILE_IPFS_KEY = BlazorAppNethereumExtensions.CONST_VAT_METADATA_FILE_IPFS_KEY;
 
 	bool   addRuleNotOp       = false;
 	int    addRuleSetId       = 0;
@@ -234,10 +236,14 @@ Use this utility to view/edit your Wonka RuleTree.
 	int    currRuleSetId   = 0;
 	string origMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_METADATA_FILE_IPFS_KEY);
 	string currMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_METADATA_FILE_IPFS_KEY);
+	string origRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
 	string currRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
 	string currRuleName    = "";
 	string currErrMsg      = "";
 	string currXml         = "";
+
+	string altRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_VAT_RULES_FILE_IPFS_KEY);
+	string altMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_VAT_METADATA_FILE_IPFS_KEY);
 
 	WonkaBizRuleTreeReport currTreeReport = null;
 	WonkaBizRulesEngine    rulesEngine    = null;
