@@ -467,6 +467,7 @@ namespace WonkaRulesBlazorEditor.Extensions
 				}
 			}
 
+			poRefEnv.RefreshMaps();
 		}
 
 		public static string GetErrors(this WonkaBizRuleTreeReport report)
@@ -705,7 +706,7 @@ namespace WonkaRulesBlazorEditor.Extensions
 				var ArithAssignRule = (ArithmeticRule) targetRule;
 
 				RuleDesc.Append(ArithAssignRule.TargetAttribute.AttrName + " = " +
-					            ArithAssignRule.GetOpTypeDesc() + "(" + String.Join(",", ArithAssignRule.DomainCache) + ")");
+					            ArithAssignRule.GetOpTypeDesc() + "(" + String.Join(",", ArithAssignRule.DomainValueProps.Keys) + ")");
 			}
 			else if (targetRule is AssignmentRule)
 			{

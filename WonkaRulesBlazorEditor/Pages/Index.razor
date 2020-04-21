@@ -33,11 +33,9 @@ Use this utility to view/edit your Wonka RuleTree.
                     <div class="row">
                         <RadzenTextBox @bind-Value="@currRulesUrl" Style="margin-bottom: 10px; width: 500px" Change="@(args => ChooseRulesUrlChange(args, "TextBox"))" MaxLength="1024" />
                     </div>
-					<!--
                     <div class="row">
                         <RadzenButton Text="Open" Click="@((args) => OpenRulesXmlHandler(args, "Button with text"))" Style="margin-bottom: 10px; margin-left: 20px; width: 100px" />
                     </div>
-					-->
                 </RadzenAccordionItem>
 			</Items>
 		</RadzenAccordion>
@@ -789,6 +787,8 @@ Use this utility to view/edit your Wonka RuleTree.
 			OnInitialized();
 
 			StateHasChanged();
+
+			ShowRuleTreeResetSuccessDialog().ConfigureAwait(false);
 		}
 		catch (Exception ex)
 		{
@@ -1003,6 +1003,16 @@ Use this utility to view/edit your Wonka RuleTree.
 	async Task ShowRuleSetAddSuccessDialog() => await dialogService.OpenAsync("SUCCESS!", ds =>
 		@<RadzenCard Style="padding: 20px;">
 			<p Style="margin-bottom: 10px;">RuleSet added successfully!  Please now close and expand the parent RuleSet node in order to refresh and observe the addition of the new RuleSet.</p>
+			<div class="row">
+				<div class="col-md-12">
+					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
+				</div>
+			</div>
+		</RadzenCard>);
+
+	async Task ShowRuleTreeResetSuccessDialog() => await dialogService.OpenAsync("SUCCESS!", ds =>
+		@<RadzenCard Style="padding: 20px;">
+			<p Style="margin-bottom: 10px;">RuleTree reset successfully!  Please now close and expand the RuleTree in order to refresh and observe the new contents.</p>
 			<div class="row">
 				<div class="col-md-12">
 					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
