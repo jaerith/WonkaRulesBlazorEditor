@@ -168,29 +168,51 @@ Use this utility to view/edit your Wonka RuleTree.
                     </RadzenCard>
                 </RadzenTabsItem>
                 <RadzenTabsItem Text="Run Engine">
-                    <RadzenCard Style="padding: 20px;">
-                        <h3>Attributes and Values:</h3>
-                        <RadzenTextArea @bind-Value="@attrValues" Cols="50" Rows="8" Style="margin-bottom: 20px" />
-                        <br />
-                        <RadzenButton Text="Run" Click="@((args) => RunEngineHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
-                        <br />
-                        <h3>RuleTree Report:</h3>
-                        <RadzenTextArea @bind-Value="@reportMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
-                        <br />
-                        <h4>Publish RuleReport to IPFS (using the name below):</h4>
-                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsReportFileNameHandler(args, "TextBox"))" />
-                        <br />
-                        <RadzenButton Text="Publish" Click="@((args) => PublishReportToIpfsHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
-                        <br />
-                        <h4>Upload New RuleTree to IPFS (using the name below):</h4>
-                        <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsTreeFileNameHandler(args, "TextBox"))" />
-                        <br />
-						<div class="row">
-							<RadzenButton Text="Preview" Click="@((args) => PreviewTreeHandler(args, "Button with text"))" Style="margin-left: 15px; margin-bottom: 10px; width: 150px" />
-							<RadzenButton Text="Upload" Click="@((args) => PublishTreeToIpfsHandler(args, "Button with text"))" Style="margin-left: 30px; margin-bottom: 10px; width: 150px" />
-					    </div>
-                    </RadzenCard>
-                </RadzenTabsItem>
+                    <RadzenTabs Change="@(idx => SwitchTab(idx, "Tabs"))">
+                        <Tabs>
+                            <RadzenTabsItem Text="Off Chain (Local)">
+								<RadzenCard Style="padding: 20px;">
+									<h3>Attributes and Values:</h3>
+									<RadzenTextArea @bind-Value="@attrValues" Cols="50" Rows="8" Style="margin-bottom: 20px" />
+									<br />
+									<RadzenButton Text="Run" Click="@((args) => RunEngineHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+									<br />
+									<h3>RuleTree Report:</h3>
+									<RadzenTextArea @bind-Value="@reportMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
+									<br />
+									<h4>Publish RuleReport to IPFS (using the name below):</h4>
+									<RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsReportFileNameHandler(args, "TextBox"))" />
+									<br />
+									<RadzenButton Text="Publish" Click="@((args) => PublishReportToIpfsHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+									<br />
+									<h4>Upload New RuleTree to IPFS (using the name below):</h4>
+									<RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsTreeFileNameHandler(args, "TextBox"))" />
+									<br />
+									<div class="row">
+										<RadzenButton Text="Preview" Click="@((args) => PreviewTreeHandler(args, "Button with text"))" Style="margin-left: 15px; margin-bottom: 10px; width: 150px" />
+										<RadzenButton Text="Upload" Click="@((args) => PublishTreeToIpfsHandler(args, "Button with text"))" Style="margin-left: 30px; margin-bottom: 10px; width: 150px" />
+									</div>
+								</RadzenCard>
+							</RadzenTabsItem>
+							<RadzenTabsItem Text="On Chain">
+								<RadzenCard Style="padding: 20px;">
+									<h3>Ethereum Node Url:</h3>
+									<RadzenTextBox @bind-Value="@ethNodeUrl" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
+									<br />
+									<RadzenButton Text="Deploy" Click="@((args) => DeployToChainHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+									<br />
+									<h3>Deploy Report:</h3>
+									<RadzenTextArea @bind-Value="@reportMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
+									<br />
+									<RadzenButton Text="Run" Click="@((args) => ExecuteOnChainHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+									<br />
+									<h3>RuleTree Report:</h3>
+									<RadzenTextArea @bind-Value="@reportMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
+								</RadzenCard>
+							</RadzenTabsItem>
+						</Tabs>
+					</RadzenTabs>
+				</RadzenTabsItem>
             </Tabs>
         </RadzenTabs>
     </div>
@@ -236,6 +258,7 @@ Use this utility to view/edit your Wonka RuleTree.
 	string currMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_METADATA_FILE_IPFS_KEY);
 	string origRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
 	string currRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
+	string ethNodeUrl      = "http://testchain.nethereum.com:8545";
 	string currRuleName    = "";
 	string currErrMsg      = "";
 	string currXml         = "";
@@ -555,6 +578,20 @@ Use this utility to view/edit your Wonka RuleTree.
 	#endregion
 
 	#region Run Engine Handlers
+
+	void ExecuteOnChainHandler(MouseEventArgs args, string name)
+	{
+		// NOTE: Run RuleTree on Ethereum blockchain
+
+		StateHasChanged();
+	}
+
+	void DeployToChainHandler(MouseEventArgs args, string name)
+	{
+		// NOTE: Deploy RuleTree to Ethereum blockchain
+
+		StateHasChanged();
+	}
 
 	void IpfsReportFileNameHandler(string value, string name)
 	{
