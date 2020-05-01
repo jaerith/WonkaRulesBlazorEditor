@@ -263,6 +263,9 @@ Use this utility to view/edit your Wonka RuleTree.
 	string currErrMsg      = "";
 	string currXml         = "";
 
+	string deploySender   = "";
+	string deployPassword = "";
+
 	string altRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_VAT_RULES_FILE_IPFS_KEY);
 	string altMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_VAT_METADATA_FILE_IPFS_KEY);
 
@@ -270,6 +273,8 @@ Use this utility to view/edit your Wonka RuleTree.
 	WonkaBizRulesEngine    rulesEngine    = null;
 
 	WonkaBizRuleSet currRuleSet = null;
+
+	Wonka.Eth.Init.WonkaEthEngineInitialization currEngineInit = null;
 
 	IEnumerable<string> entries = null;
 
@@ -588,7 +593,32 @@ Use this utility to view/edit your Wonka RuleTree.
 
 	void DeployToChainHandler(MouseEventArgs args, string name)
 	{
-		// NOTE: Deploy RuleTree to Ethereum blockchain
+		try
+		{
+			string sDefaultSource = "N";
+
+			currEngineInit = new Wonka.Eth.Init.WonkaEthEngineInitialization();
+
+			// NOTE: Deploy RuleTree to Ethereum blockchain
+			currEngineInit.Engine.MetadataSource       = new Wonka.BizRulesEngine.Samples.WonkaBreMetadataTestSource();
+			currEngineInit.Engine.RulesMarkupXml       = rules;
+			// currEngineInit.Engine.DotNetRetrieveMethod = RetrieveValueMethod;
+			currEngineInit.EthSenderAddress            = currEngineInit.EthRuleTreeOwnerAddress = deploySender;
+			currEngineInit.EthPassword                 = deployPassword;
+			currEngineInit.Web3HttpUrl                 = ethNodeUrl;
+			//currEngineInit.RulesEngineContractAddress  = msEngineContractAddress;
+			//currEngineInit.RegistryContractAddress     = msRegistryContractAddress;
+			//currEngineInit.StorageContractAddress      = msTestContractAddress;
+			currEngineInit.StorageDefaultSourceId      = sDefaultSource;
+
+			// NOTE: Not yet tested
+			// currEngineInit.Deploy().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
 
 		StateHasChanged();
 	}

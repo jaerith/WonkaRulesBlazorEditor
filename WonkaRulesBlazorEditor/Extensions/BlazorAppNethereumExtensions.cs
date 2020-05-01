@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +14,8 @@ using Nethereum.Web3;
 
 using Wonka.BizRulesEngine;
 using Wonka.BizRulesEngine.Reporting;
+using Wonka.Eth.Extensions;
+using Wonka.Eth.Init;
 
 using WonkaRulesBlazorEditor.Data;
 
@@ -143,6 +146,48 @@ namespace WonkaRulesBlazorEditor.Extensions
 			return sStatusCd;
 		}
 
+		public static async Task<bool> Deploy(this WonkaEthEngineInitialization poEthEngineInit)
+		{
+			poEthEngineInit.StorageContractABI    = Wonka.Eth.Autogen.WonkaTestContract.WonkaTestContractDeployment.ABI;
+			poEthEngineInit.StorageGetterMethod   = "getAttrValueBytes32";
+			poEthEngineInit.StorageSetterMethod   = "setAttrValueBytes32";
+			poEthEngineInit.UsingStorageContract  = true;
+			poEthEngineInit.UsingTrxStateContract = false;
+
+			await poEthEngineInit.InitEngineAsync(false).ConfigureAwait(false);
+
+			// Serialize the data domain to the blockchain
+			await poEthEngineInit.SerializeAsync().ConfigureAwait(false);
+
+			return true;
+		}
+
+		public static async Task<List<string>> DeployContracts(string psPassword, string psSenderAddress, string psWeb3HttpUrl)
+        {
+            var web3               = GetWeb3(psPassword, psWeb3HttpUrl);
+            var EngineDeployment   = new Wonka.Eth.Autogen.WonkaEngine.WonkaEngineDeployment();
+            var RegistryDeployment = new Wonka.Eth.Autogen.WonkaRegistry.WonkaRegistryDeployment();
+            var TestCntDeployment  = new Wonka.Eth.Autogen.WonkaTestContract.WonkaTestContractDeployment();
+
+			Nethereum.Hex.HexTypes.HexBigInteger nEngineGas  = new Nethereum.Hex.HexTypes.HexBigInteger(8388608);
+			Nethereum.Hex.HexTypes.HexBigInteger nDefaultGas = new Nethereum.Hex.HexTypes.HexBigInteger(1000000);
+
+			string sWonkaABI        = Wonka.Eth.Autogen.WonkaEngine.WonkaEngineDeployment.ABI;
+			string sRegistryABI     = Wonka.Eth.Autogen.WonkaRegistry.WonkaRegistryDeployment.ABI;
+			string sTestContractABI = Wonka.Eth.Autogen.WonkaTestContract.WonkaTestContractDeployment.ABI;
+
+			string sEngineContractAddress =
+				await EngineDeployment.DeployContractAsync(web3, sWonkaABI, psSenderAddress, nEngineGas, psWeb3HttpUrl).ConfigureAwait(false);
+
+			string sRegistryContractAddress =
+				await RegistryDeployment.DeployContractAsync(web3, sRegistryABI, psSenderAddress, nDefaultGas, psWeb3HttpUrl).ConfigureAwait(false);
+
+			string sTestContractAddress =
+				await TestCntDeployment.DeployContractAsync(web3, sTestContractABI, psSenderAddress, nDefaultGas, psWeb3HttpUrl).ConfigureAwait(false);
+
+			return new List<string>() { sEngineContractAddress, sRegistryContractAddress, sTestContractAddress };
+        }
+
 		public static string DetermineStatusByValidatingSignature(string psEOA, string psMsg, string psSignature, string psDummyValue)
 		{
 			string sStatusCd = BlazorAppWonkaExtensions.CONST_STATUS_CD_INACTIVE;
@@ -195,6 +240,19 @@ namespace WonkaRulesBlazorEditor.Extensions
 				url = psHostUrl;
 
 			return new Web3(url).Eth.GetContract(psContractABI, psContractAddress).GetFunction(psFunctionName).CallAsync<string>().Result;
+		}
+
+		public static Web3 GetWeb3(string psPassword, string psWeb3HttpUrl)
+		{
+			var account = new Nethereum.Web3.Accounts.Account(psPassword);
+
+			Web3 web3 = null;
+			if (!String.IsNullOrEmpty(psWeb3HttpUrl))
+				web3 = new Web3(account, psWeb3HttpUrl);
+			else
+				web3 = new Web3(account);
+
+			return web3;
 		}
 
 		// NOTE: This code will need to be modified in order to work correctly
