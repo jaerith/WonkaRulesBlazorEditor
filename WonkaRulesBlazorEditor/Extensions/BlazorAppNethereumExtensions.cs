@@ -269,6 +269,66 @@ namespace WonkaRulesBlazorEditor.Extensions
 			return new Web3(url).Eth.GetContract(psContractABI, psContractAddress).GetFunction(psFunctionName).CallAsync<string>().Result;
 		}
 
+        public static async Task<string> GetCurrValuesReport(this WonkaEthEngineInitialization poEthEngineInit)
+		{
+			Wonka.MetaData.WonkaRefEnvironment RefEnv = Wonka.MetaData.WonkaRefEnvironment.GetInstance();
+
+			StringBuilder report = new StringBuilder("Below are current Attr values on Storage Contract (pulled via Wonka Engine Contract):\n");
+			report.Append("-----------------------------------\n");
+
+			ASCIIEncoding asciiEncoding = new ASCIIEncoding();
+
+			var EngineContractHandler =
+				GetWeb3(poEthEngineInit.EthPassword, poEthEngineInit.Web3HttpUrl).Eth.GetContractHandler(poEthEngineInit.RulesEngineContractAddress);
+
+			var ValOnRecordFunction =
+				new GetValueOnRecordFunction() { Ruler = poEthEngineInit.EthSenderAddress };
+
+			foreach (var TempAttr in RefEnv.AttrCache)
+			{
+				ValOnRecordFunction.Key = asciiEncoding.GetBytes(TempAttr.AttrName);
+
+				var GetAttrValOutput =
+					await
+					EngineContractHandler
+					.QueryDeserializingToObjectAsync<GetValueOnRecordFunction, GetValueOnRecordOutputDTO>(ValOnRecordFunction, null)
+					.ConfigureAwait(false);
+
+				report.Append("Value of Attr(" + TempAttr.AttrName + ") : [" + GetAttrValOutput.ReturnValue1 + "].\n");
+			}
+
+			return report.ToString();
+		}
+
+		public static async Task<string> GetDeploymentReport(this WonkaEthEngineInitialization poEthEngineInit)
+		{
+			StringBuilder report = new StringBuilder("Contracts deployed successfully!\n");
+
+			report.Append("Wonka Contract deployed to: (" + poEthEngineInit.RulesEngineContractAddress + ")\n");
+			report.Append("Registry Contract deployed to: (" + poEthEngineInit.RegistryContractAddress + ")\n");
+			report.Append("Test Storage Contract deployed to: (" + poEthEngineInit.StorageContractAddress + ")\n\n");
+			report.Append("RuleTree (" + poEthEngineInit.Engine.RulesEngine.RuleTreeRoot.Description + ") was serialized succesfully to the Wonka Contract!");
+
+			var EngineContractHandler =
+				GetWeb3(poEthEngineInit.EthPassword, poEthEngineInit.Web3HttpUrl).Eth.GetContractHandler(poEthEngineInit.RulesEngineContractAddress);
+
+			var GetAttrNumOutput =
+				await
+				EngineContractHandler
+				.QueryDeserializingToObjectAsync<GetNumberOfAttributesFunction, GetNumberOfAttributesOutputDTO>(new GetNumberOfAttributesFunction(), null)
+				.ConfigureAwait(false);
+
+			// Placed a wait, just for good measure
+			System.Threading.Thread.Sleep(1000);
+
+			report.Append("\n\nNumber of Attributes Deployed to Wonka Contract: [" + (uint) GetAttrNumOutput.ReturnValue1 + "].\n\n");
+
+			string sCurrValsReport = await poEthEngineInit.GetCurrValuesReport().ConfigureAwait(false);
+			report.Append(sCurrValsReport);
+
+			return report.ToString();
+		}
+
 		public static Web3 GetWeb3(string psPassword, string psWeb3HttpUrl)
 		{
 			var account = new Nethereum.Web3.Accounts.Account(psPassword);
@@ -376,27 +436,5 @@ namespace WonkaRulesBlazorEditor.Extensions
 			return sIpfsHash;
 		}
 
-		public static async Task<string> ToReport(this WonkaEthEngineInitialization poEthEngineInit)
-		{
-			StringBuilder report = new StringBuilder("Contracts deployed successfully!\n");
-
-			report.Append("Wonka Contract deployed to: (" + poEthEngineInit.RulesEngineContractAddress + ")\n");
-			report.Append("Registry Contract deployed to: (" + poEthEngineInit.RegistryContractAddress + ")\n");
-			report.Append("Test Storage Contract deployed to: (" + poEthEngineInit.StorageContractAddress + ")\n\n");
-			report.Append("RuleTree (" + poEthEngineInit.Engine.RulesEngine.RuleTreeRoot.Description + ") was serialized succesfully to the Wonka Contract!");
-
-			var EngineContractHandler =
-				GetWeb3(poEthEngineInit.EthPassword, poEthEngineInit.Web3HttpUrl).Eth.GetContractHandler(poEthEngineInit.RulesEngineContractAddress);
-
-			var GetAttrNumOutput =
-				await
-				EngineContractHandler
-				.QueryDeserializingToObjectAsync<GetNumberOfAttributesFunction, GetNumberOfAttributesOutputDTO>(new GetNumberOfAttributesFunction(), null)
-				.ConfigureAwait(false);
-
-			report.Append("\n\nNumber of Attributes Deployed to Wonka Contract: [" + (uint) GetAttrNumOutput.ReturnValue1 + "].");
-
-			return report.ToString();
-		}
 	}
 }

@@ -635,7 +635,7 @@ Use this utility to view/edit your Wonka RuleTree.
 			// NOTE: Deploy RuleTree (after deploying Wonka contract) to Ethereum blockchain
 			bool bResult = currEngineInit.Deploy().Result;
 
-			deployMsg = currEngineInit.ToReport().Result;
+			deployMsg = currEngineInit.GetDeploymentReport().Result;
 		}
 		catch (Exception ex)
 		{
