@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using Nethereum.ABI.FunctionEncoding.Attributes;
 using Nethereum.Contracts;
+using Nethereum.Contracts.ContractHandlers;
 using Nethereum.ENS;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.RPC.Eth.DTOs;
@@ -14,6 +15,7 @@ using Nethereum.Web3;
 
 using Wonka.BizRulesEngine;
 using Wonka.BizRulesEngine.Reporting;
+using Wonka.Eth.Autogen.WonkaEngine;
 using Wonka.Eth.Extensions;
 using Wonka.Eth.Init;
 
@@ -205,6 +207,31 @@ namespace WonkaRulesBlazorEditor.Extensions
 			return sStatusCd;
 		}
 
+		public static async Task<string> ExecuteOnChain(this WonkaEthEngineInitialization poEthEngineInit)
+		{
+			StringBuilder EngineReport = new StringBuilder();
+
+			/**
+			 ** Classic Way
+			 **
+			var EngineContractHandler =
+				GetWeb3(poEthEngineInit.EthPassword, poEthEngineInit.Web3HttpUrl).Eth.GetContractHandler(poEthEngineInit.RulesEngineContractAddress);
+
+			var ExecWithReportFunction =
+				new ExecuteWithReportFunction() { Ruler = poEthEngineInit.EthSenderAddress };
+
+			var EWRTrxReceipt = await EngineContractHandler.SendRequestAndWaitForReceiptAsync(ExecWithReportFunction, null).ConfigureAwait(false);
+	         **/
+
+			var Report = new Wonka.Eth.Extensions.RuleTreeReport();
+
+			await poEthEngineInit.Engine.RulesEngine.ExecuteOnChainAsync(poEthEngineInit, Report).ConfigureAwait(false);
+
+			EngineReport.Append(Report.PrettyPrint());
+
+			return EngineReport.ToString();
+		}
+
 		public static string GetERC20Balance(string psContractAddress, string psOwner, string psDummyValue1 = "", string psDummyValue2 = "")
 		{
 			var url  = CONST_TEST_INFURA_URL;
@@ -288,6 +315,15 @@ namespace WonkaRulesBlazorEditor.Extensions
 			return txnHash;
 		}
 
+		public static string PrettyPrint(this Wonka.Eth.Extensions.RuleTreeReport poReport)
+		{
+			StringBuilder PrettyPrintReport = new StringBuilder();
+
+			// Assemble the report
+
+			return PrettyPrintReport.ToString();
+		}
+
 		public static async Task<string> PublishReportToIpfs(this WonkaBizRuleTreeReport poReport,
 																				  string psIpfsFilePath,
 																			 IpfsService poIpfsService,
@@ -338,6 +374,29 @@ namespace WonkaRulesBlazorEditor.Extensions
 			sIpfsHash = IpfsNode.Hash.ToString();
 
 			return sIpfsHash;
+		}
+
+		public static async Task<string> ToReport(this WonkaEthEngineInitialization poEthEngineInit)
+		{
+			StringBuilder report = new StringBuilder("Contracts deployed successfully!\n");
+
+			report.Append("Wonka Contract deployed to: (" + poEthEngineInit.RulesEngineContractAddress + ")\n");
+			report.Append("Registry Contract deployed to: (" + poEthEngineInit.RegistryContractAddress + ")\n");
+			report.Append("Test Storage Contract deployed to: (" + poEthEngineInit.StorageContractAddress + ")\n\n");
+			report.Append("RuleTree (" + poEthEngineInit.Engine.RulesEngine.RuleTreeRoot.Description + ") was serialized succesfully to the Wonka Contract!");
+
+			var EngineContractHandler =
+				GetWeb3(poEthEngineInit.EthPassword, poEthEngineInit.Web3HttpUrl).Eth.GetContractHandler(poEthEngineInit.RulesEngineContractAddress);
+
+			var GetAttrNumOutput =
+				await
+				EngineContractHandler
+				.QueryDeserializingToObjectAsync<GetNumberOfAttributesFunction, GetNumberOfAttributesOutputDTO>(new GetNumberOfAttributesFunction(), null)
+				.ConfigureAwait(false);
+
+			report.Append("\n\nNumber of Attributes Deployed to Wonka Contract: [" + (uint) GetAttrNumOutput.ReturnValue1 + "].");
+
+			return report.ToString();
 		}
 	}
 }

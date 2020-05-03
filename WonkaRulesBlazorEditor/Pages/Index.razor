@@ -195,20 +195,26 @@ Use this utility to view/edit your Wonka RuleTree.
 								</RadzenCard>
 							</RadzenTabsItem>
 							<RadzenTabsItem Text="On Chain">
-								<RadzenCard Style="padding: 20px;">
-									<h3>Ethereum Node Url:</h3>
-									<RadzenTextBox @bind-Value="@ethNodeUrl" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
+                                <RadzenCard Style="padding: 20px;">
+                                    <h3>Sender:</h3>
+                                    <RadzenTextBox @bind-Value="@deploySender" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
+                                    <br />
+									<h3>Password:</h3>
+									<RadzenTextBox @bind-Value="@deployPassword" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
 									<br />
-									<RadzenButton Text="Deploy" Click="@((args) => DeployToChainHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
-									<br />
-									<h3>Deploy Report:</h3>
-									<RadzenTextArea @bind-Value="@reportMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
-									<br />
-									<RadzenButton Text="Run" Click="@((args) => ExecuteOnChainHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
-									<br />
-									<h3>RuleTree Report:</h3>
-									<RadzenTextArea @bind-Value="@reportMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
-								</RadzenCard>
+                                    <h3>Ethereum Node Url:</h3>
+                                    <RadzenTextBox @bind-Value="@ethNodeUrl" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
+                                    <br />
+                                    <RadzenButton Text="Deploy" Click="@((args) => DeployToChainHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+                                    <br />
+                                    <h3>Deploy Report:</h3>
+                                    <RadzenTextArea @bind-Value="@deployMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
+                                    <br />
+                                    <RadzenButton Text="Run" Click="@((args) => ExecuteOnChainHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+                                    <br />
+                                    <h3>RuleTree Report:</h3>
+                                    <RadzenTextArea @bind-Value="@reportMsgFromChain" Cols="50" Rows="4" Style="margin-bottom: 20px" />
+                                </RadzenCard>
 							</RadzenTabsItem>
 						</Tabs>
 					</RadzenTabs>
@@ -258,13 +264,16 @@ Use this utility to view/edit your Wonka RuleTree.
 	string currMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_METADATA_FILE_IPFS_KEY);
 	string origRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
 	string currRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_RULES_FILE_IPFS_KEY);
+	string origRules       = "";
 	string ethNodeUrl      = "http://testchain.nethereum.com:8545";
 	string currRuleName    = "";
 	string currErrMsg      = "";
 	string currXml         = "";
 
-	string deploySender   = "";
-	string deployPassword = "";
+	string deploySender       = "0x12890D2cce102216644c59daE5baed380d84830c";
+	string deployPassword     = "0xb5b1870957d373ef0eeffecc6e4812c0fd08f554b37b233526acc331bf1544f7";
+	string deployMsg          = "";
+	string reportMsgFromChain = "";
 
 	string altRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_VAT_RULES_FILE_IPFS_KEY);
 	string altMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_VAT_METADATA_FILE_IPFS_KEY);
@@ -311,6 +320,9 @@ Use this utility to view/edit your Wonka RuleTree.
 		using (var client = new System.Net.Http.HttpClient())
 		{
 			rules = client.GetStringAsync(currRulesUrl).Result;
+
+			if (String.IsNullOrEmpty(origRules))
+				origRules = rules;
 		}
 
 		rulesEngine = new WonkaBizRulesEngine(new StringBuilder(rules));
@@ -586,9 +598,19 @@ Use this utility to view/edit your Wonka RuleTree.
 
 	void ExecuteOnChainHandler(MouseEventArgs args, string name)
 	{
-		// NOTE: Run RuleTree on Ethereum blockchain
+		try
+		{
+			// NOTE: Run RuleTree on Ethereum blockchain
+			// NOTE: This has not yet been tested
+			// reportMsgFromChain = currEngineInit.ExecuteOnChain().Result;
 
-		StateHasChanged();
+			StateHasChanged();
+		}
+		catch (Exception ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
 	}
 
 	void DeployToChainHandler(MouseEventArgs args, string name)
@@ -599,9 +621,8 @@ Use this utility to view/edit your Wonka RuleTree.
 
 			currEngineInit = new Wonka.Eth.Init.WonkaEthEngineInitialization();
 
-			// NOTE: Deploy RuleTree to Ethereum blockchain
 			currEngineInit.Engine.MetadataSource       = new Wonka.BizRulesEngine.Samples.WonkaBreMetadataTestSource();
-			currEngineInit.Engine.RulesMarkupXml       = rules;
+			currEngineInit.Engine.RulesMarkupXml       = origRules;
 			// currEngineInit.Engine.DotNetRetrieveMethod = RetrieveValueMethod;
 			currEngineInit.EthSenderAddress            = currEngineInit.EthRuleTreeOwnerAddress = deploySender;
 			currEngineInit.EthPassword                 = deployPassword;
@@ -611,8 +632,10 @@ Use this utility to view/edit your Wonka RuleTree.
 			//currEngineInit.StorageContractAddress      = msTestContractAddress;
 			currEngineInit.StorageDefaultSourceId      = sDefaultSource;
 
-			// NOTE: Not yet tested
-			// currEngineInit.Deploy().ConfigureAwait(false);
+			// NOTE: Deploy RuleTree (after deploying Wonka contract) to Ethereum blockchain
+			bool bResult = currEngineInit.Deploy().Result;
+
+			deployMsg = currEngineInit.ToReport().Result;
 		}
 		catch (Exception ex)
 		{
@@ -1015,7 +1038,7 @@ Use this utility to view/edit your Wonka RuleTree.
 		</RadzenCard>);
 
 
-	async Task ShowErrorDialog() => await dialogService.OpenAsync("WHOOPSEE!  You made a mistake.", ds =>
+	async Task ShowErrorDialog() => await dialogService.OpenAsync("WHOOPSEE!  There was a mistake.", ds =>
 		@<RadzenCard Style="padding: 20px;">
 			<p Style="margin-bottom: 10px;">@currErrMsg</p>
 			<div class="row">
