@@ -600,11 +600,21 @@ Use this utility to view/edit your Wonka RuleTree.
 	{
 		try
 		{
-			// NOTE: Run RuleTree on Ethereum blockchain
-			// NOTE: This has not yet been tested
-			// reportMsgFromChain = currEngineInit.ExecuteOnChain().Result;
+			if (!String.IsNullOrEmpty(currEngineInit.RulesEngineContractAddress) &&
+				!String.IsNullOrEmpty(currEngineInit.RegistryContractAddress) &&
+				!String.IsNullOrEmpty(currEngineInit.StorageContractAddress))
+			{
+				// NOTE: Run RuleTree on Ethereum blockchain		    
+				reportMsgFromChain = currEngineInit.ExecuteOnChain().Result;
+			}
+			else
+			{
+				throw new Exception("ERROR!  Contract(s) need to be deployed before execution.");
+			}
 
 			StateHasChanged();
+
+			ShowEngineSuccessDialog().ConfigureAwait(false);
 		}
 		catch (Exception ex)
 		{
@@ -636,14 +646,16 @@ Use this utility to view/edit your Wonka RuleTree.
 			bool bResult = currEngineInit.Deploy().Result;
 
 			deployMsg = currEngineInit.GetDeploymentReport().Result;
+
+			StateHasChanged();
+
+			ShowEngineSuccessDialog().ConfigureAwait(false);
 		}
 		catch (Exception ex)
 		{
 			currErrMsg = ex.Message;
 			ShowErrorDialog().ConfigureAwait(false);
 		}
-
-		StateHasChanged();
 	}
 
 	void IpfsReportFileNameHandler(string value, string name)
@@ -1036,7 +1048,6 @@ Use this utility to view/edit your Wonka RuleTree.
 				</div>
 			</div>
 		</RadzenCard>);
-
 
 	async Task ShowErrorDialog() => await dialogService.OpenAsync("WHOOPSEE!  There was a mistake.", ds =>
 		@<RadzenCard Style="padding: 20px;">

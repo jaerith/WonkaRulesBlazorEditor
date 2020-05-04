@@ -227,7 +227,8 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 			await poEthEngineInit.Engine.RulesEngine.ExecuteOnChainAsync(poEthEngineInit, Report).ConfigureAwait(false);
 
-			EngineReport.Append(Report.PrettyPrint());
+			string sPrettyPrintReport = await Report.PrettyPrint(poEthEngineInit).ConfigureAwait(false);
+			EngineReport.Append(sPrettyPrintReport);
 
 			return EngineReport.ToString();
 		}
@@ -319,7 +320,7 @@ namespace WonkaRulesBlazorEditor.Extensions
 				.ConfigureAwait(false);
 
 			// Placed a wait, just for good measure
-			System.Threading.Thread.Sleep(1000);
+			System.Threading.Thread.Sleep(2000);
 
 			report.Append("\n\nNumber of Attributes Deployed to Wonka Contract: [" + (uint) GetAttrNumOutput.ReturnValue1 + "].\n\n");
 
@@ -375,11 +376,21 @@ namespace WonkaRulesBlazorEditor.Extensions
 			return txnHash;
 		}
 
-		public static string PrettyPrint(this Wonka.Eth.Extensions.RuleTreeReport poReport)
+		public static async Task<string> PrettyPrint(this Wonka.Eth.Extensions.RuleTreeReport poReport, WonkaEthEngineInitialization poEthEngineInit)
 		{
 			StringBuilder PrettyPrintReport = new StringBuilder();
 
-			// Assemble the report
+			int nRSFailedCount = poReport.GetRuleSetSevereFailureCount();
+			if (nRSFailedCount == 0)
+				PrettyPrintReport.Append("Engine completed successfully!\n\n");
+			else
+			{
+				PrettyPrintReport.Append("Engine failed, with [" + nRSFailedCount + "] 'severe' leaf RuleSets having failed.\n\n");
+				PrettyPrintReport.Append("Failed 'severe' RuleSets: [" + String.Join(',', poReport.RuleSetFailures) + "]\n\n");
+			}
+
+			string sCurrValsReport = await poEthEngineInit.GetCurrValuesReport().ConfigureAwait(false);
+			PrettyPrintReport.Append(sCurrValsReport);
 
 			return PrettyPrintReport.ToString();
 		}
