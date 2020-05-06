@@ -199,19 +199,21 @@ Use this utility to view/edit your Wonka RuleTree.
                                     <h3>Sender:</h3>
                                     <RadzenTextBox @bind-Value="@deploySender" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
                                     <br />
-									<h3>Password:</h3>
-									<RadzenTextBox @bind-Value="@deployPassword" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
-									<br />
+                                    <h3>Password:</h3>
+                                    <RadzenTextBox @bind-Value="@deployPassword" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
+                                    <br />
                                     <h3>Ethereum Node Url:</h3>
                                     <RadzenTextBox @bind-Value="@ethNodeUrl" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
                                     <br />
                                     <RadzenButton Text="Deploy" Click="@((args) => DeployToChainHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                                     <br />
+                                    <RadzenProgressBar Visible="false" @bind-Value="@(ProgressBarValues.DeployProgressBar)" Style="margin-bottom: 20px" />
                                     <h3>Deploy Report:</h3>
                                     <RadzenTextArea @bind-Value="@deployMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
                                     <br />
                                     <RadzenButton Text="Run" Click="@((args) => ExecuteOnChainHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                                     <br />
+                                    <RadzenProgressBar Visible="false" @bind-Value="@(ProgressBarValues.ExecuteProgressBar)" Style="margin-bottom: 20px" />
                                     <h3>RuleTree Report:</h3>
                                     <RadzenTextArea @bind-Value="@reportMsgFromChain" Cols="50" Rows="4" Style="margin-bottom: 20px" />
                                 </RadzenCard>
@@ -596,6 +598,7 @@ Use this utility to view/edit your Wonka RuleTree.
 
 	#region Run Engine Handlers
 
+	// NOTE: This method may take 15-30 seconds to complete
 	void ExecuteOnChainHandler(MouseEventArgs args, string name)
 	{
 		try
@@ -604,13 +607,25 @@ Use this utility to view/edit your Wonka RuleTree.
 				!String.IsNullOrEmpty(currEngineInit.RegistryContractAddress) &&
 				!String.IsNullOrEmpty(currEngineInit.StorageContractAddress))
 			{
-				// NOTE: Run RuleTree on Ethereum blockchain		    
-				reportMsgFromChain = currEngineInit.ExecuteOnChain().Result;
+				bool bOwnsRuleTree =
+					currEngineInit.OwnsRuleTree(currEngineInit.EthSenderAddress).Result;
+
+				if (bOwnsRuleTree)
+				{
+					// NOTE: Run RuleTree on Ethereum blockchain		    
+					reportMsgFromChain = currEngineInit.ExecuteOnChain().Result;
+				}
+				else
+				{
+					throw new Exception("ERROR!  Sender (" + currEngineInit.EthSenderAddress + ") does not own a RuleTree to execute");
+				}
 			}
 			else
 			{
 				throw new Exception("ERROR!  Contract(s) need to be deployed before execution.");
 			}
+
+			ProgressBarValues.ExecuteProgressBar = 100;
 
 			StateHasChanged();
 
@@ -621,8 +636,14 @@ Use this utility to view/edit your Wonka RuleTree.
 			currErrMsg = ex.Message;
 			ShowErrorDialog().ConfigureAwait(false);
 		}
+		finally
+		{
+			// NOTE: Make Progress Bar invisible when execution is done
+			ProgressBarValues.ExecuteProgressBar = 0;
+		}
 	}
 
+	// NOTE: This method may take 15-30 seconds to complete
 	void DeployToChainHandler(MouseEventArgs args, string name)
 	{
 		try
@@ -647,6 +668,8 @@ Use this utility to view/edit your Wonka RuleTree.
 
 			deployMsg = currEngineInit.GetDeploymentReport().Result;
 
+			ProgressBarValues.DeployProgressBar = 100;
+
 			StateHasChanged();
 
 			ShowEngineSuccessDialog().ConfigureAwait(false);
@@ -655,6 +678,11 @@ Use this utility to view/edit your Wonka RuleTree.
 		{
 			currErrMsg = ex.Message;
 			ShowErrorDialog().ConfigureAwait(false);
+		}
+		finally
+		{
+			// NOTE: Make Progress Bar invisible when deployment is done
+			ProgressBarValues.DeployProgressBar = 0;
 		}
 	}
 

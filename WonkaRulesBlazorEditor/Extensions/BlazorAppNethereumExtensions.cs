@@ -150,6 +150,8 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 		public static async Task<bool> Deploy(this WonkaEthEngineInitialization poEthEngineInit)
 		{
+			ProgressBarValues.DeployProgressBar = 25;
+
 			poEthEngineInit.StorageContractABI    = Wonka.Eth.Autogen.WonkaTestContract.WonkaTestContractDeployment.ABI;
 			poEthEngineInit.StorageGetterMethod   = "getAttrValueBytes32";
 			poEthEngineInit.StorageSetterMethod   = "setAttrValueBytes32";
@@ -158,8 +160,12 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 			await poEthEngineInit.InitEngineAsync(false).ConfigureAwait(false);
 
+			ProgressBarValues.DeployProgressBar = 50;
+
 			// Serialize the data domain to the blockchain
 			await poEthEngineInit.SerializeAsync().ConfigureAwait(false);
+
+			ProgressBarValues.DeployProgressBar = 75;
 
 			return true;
 		}
@@ -223,12 +229,20 @@ namespace WonkaRulesBlazorEditor.Extensions
 			var EWRTrxReceipt = await EngineContractHandler.SendRequestAndWaitForReceiptAsync(ExecWithReportFunction, null).ConfigureAwait(false);
 	         **/
 
+			ProgressBarValues.ExecuteProgressBar = 12;
+
 			var Report = new Wonka.Eth.Extensions.RuleTreeReport();
+
+			ProgressBarValues.ExecuteProgressBar = 25;
 
 			await poEthEngineInit.Engine.RulesEngine.ExecuteOnChainAsync(poEthEngineInit, Report).ConfigureAwait(false);
 
+			ProgressBarValues.ExecuteProgressBar = 50;
+
 			string sPrettyPrintReport = await Report.PrettyPrint(poEthEngineInit).ConfigureAwait(false);
 			EngineReport.Append(sPrettyPrintReport);
+
+			ProgressBarValues.ExecuteProgressBar = 75;
 
 			return EngineReport.ToString();
 		}
@@ -341,6 +355,20 @@ namespace WonkaRulesBlazorEditor.Extensions
 				web3 = new Web3(account);
 
 			return web3;
+		}
+
+		public static async Task<bool> OwnsRuleTree(this WonkaEthEngineInitialization poEthEngineInit, string psRuleTreeOwner)
+		{
+			var EngineContractHandler =
+				GetWeb3(poEthEngineInit.EthPassword, poEthEngineInit.Web3HttpUrl).Eth.GetContractHandler(poEthEngineInit.RulesEngineContractAddress);
+
+			var OwnsRuleTreeOutput =
+				await
+				EngineContractHandler
+				.QueryDeserializingToObjectAsync<HasRuleTreeFunction, HasRuleTreeOutputDTO>(new HasRuleTreeFunction() { Ruler = psRuleTreeOwner }, null)
+				.ConfigureAwait(false);
+
+			return OwnsRuleTreeOutput.ReturnValue1;
 		}
 
 		// NOTE: This code will need to be modified in order to work correctly
