@@ -274,8 +274,8 @@ Use this utility to view/edit your Wonka RuleTree.
 
 	string deploySender       = "0x12890D2cce102216644c59daE5baed380d84830c";
 	string deployPassword     = "0xb5b1870957d373ef0eeffecc6e4812c0fd08f554b37b233526acc331bf1544f7";
-	string deployMsg          = "";
-	string reportMsgFromChain = "";
+	string deployMsg          = "Warning!  Deployment of the RuleTree to chain will take several seconds.  Please be patient.";
+	string reportMsgFromChain = "Warning!  Execution of the RuleTree on chain will take several seconds.  Please be patient.";
 
 	string altRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_VAT_RULES_FILE_IPFS_KEY);
 	string altMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_VAT_METADATA_FILE_IPFS_KEY);
@@ -1158,6 +1158,17 @@ Use this utility to view/edit your Wonka RuleTree.
 				</div>
 			</div>
 		</RadzenCard>);	
+
+    async Task ShowWarningForOnChainExecutionDialog() => await dialogService.OpenAsync("SUCCESS!", ds =>
+		@<RadzenCard Style="padding: 20px;">
+			<p Style="margin-bottom: 10px;">Warning!  This action on the chain will take a few seconds to complete.  Please be patient.</p>
+			<div class="row">
+				<div class="col-md-12">
+					<RadzenButton Text="Ok" Click="()=> ds.Close(true)" Style="margin-bottom: 10px; width: 150px" />
+				</div>
+			</div>
+		</RadzenCard>);	
+
 
 }
 
