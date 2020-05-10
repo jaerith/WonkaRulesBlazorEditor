@@ -171,30 +171,30 @@ Use this utility to view/edit your Wonka RuleTree.
                     <RadzenTabs Change="@(idx => SwitchTab(idx, "Tabs"))">
                         <Tabs>
                             <RadzenTabsItem Text="Off Chain (Local)">
-								<RadzenCard Style="padding: 20px;">
-									<h3>Attributes and Values:</h3>
-									<RadzenTextArea @bind-Value="@attrValues" Cols="50" Rows="8" Style="margin-bottom: 20px" />
-									<br />
-									<RadzenButton Text="Run" Click="@((args) => RunEngineHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
-									<br />
-									<h3>RuleTree Report:</h3>
-									<RadzenTextArea @bind-Value="@reportMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
-									<br />
-									<h4>Publish RuleReport to IPFS (using the name below):</h4>
-									<RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsReportFileNameHandler(args, "TextBox"))" />
-									<br />
-									<RadzenButton Text="Publish" Click="@((args) => PublishReportToIpfsHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
-									<br />
-									<h4>Upload New RuleTree to IPFS (using the name below):</h4>
-									<RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsTreeFileNameHandler(args, "TextBox"))" />
-									<br />
-									<div class="row">
-										<RadzenButton Text="Preview" Click="@((args) => PreviewTreeHandler(args, "Button with text"))" Style="margin-left: 15px; margin-bottom: 10px; width: 150px" />
-										<RadzenButton Text="Upload" Click="@((args) => PublishTreeToIpfsHandler(args, "Button with text"))" Style="margin-left: 30px; margin-bottom: 10px; width: 150px" />
-									</div>
-								</RadzenCard>
-							</RadzenTabsItem>
-							<RadzenTabsItem Text="On Chain">
+                                <RadzenCard Style="padding: 20px;">
+                                    <h3>Attributes and Values:</h3>
+                                    <RadzenTextArea @bind-Value="@attrValues" Cols="50" Rows="8" Style="margin-bottom: 20px" />
+                                    <br />
+                                    <RadzenButton Text="Run" Click="@((args) => RunEngineHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+                                    <br />
+                                    <h3>RuleTree Report:</h3>
+                                    <RadzenTextArea @bind-Value="@reportMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
+                                    <br />
+                                    <h4>Publish RuleReport to IPFS (using the name below):</h4>
+                                    <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsReportFileNameHandler(args, "TextBox"))" />
+                                    <br />
+                                    <RadzenButton Text="Publish" Click="@((args) => PublishReportToIpfsHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+                                    <br />
+                                    <h4>Upload New RuleTree to IPFS (using the name below):</h4>
+                                    <RadzenTextBox Style="margin-bottom: 20px" Change="@(args => IpfsTreeFileNameHandler(args, "TextBox"))" />
+                                    <br />
+                                    <div class="row">
+                                        <RadzenButton Text="Preview" Click="@((args) => PreviewTreeHandler(args, "Button with text"))" Style="margin-left: 15px; margin-bottom: 10px; width: 150px" />
+                                        <RadzenButton Text="Upload" Click="@((args) => PublishTreeToIpfsHandler(args, "Button with text"))" Style="margin-left: 30px; margin-bottom: 10px; width: 150px" />
+                                    </div>
+                                </RadzenCard>
+                            </RadzenTabsItem>
+                            <RadzenTabsItem Text="On Chain">
                                 <RadzenCard Style="padding: 20px;">
                                     <h3>Sender:</h3>
                                     <RadzenTextBox @bind-Value="@deploySender" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
@@ -217,8 +217,27 @@ Use this utility to view/edit your Wonka RuleTree.
                                     <h3>RuleTree Report:</h3>
                                     <RadzenTextArea @bind-Value="@reportMsgFromChain" Cols="50" Rows="4" Style="margin-bottom: 20px" />
                                 </RadzenCard>
-							</RadzenTabsItem>
-						</Tabs>
+                            </RadzenTabsItem>
+                            <RadzenTabsItem Text="Add to Registry">
+                                <RadzenCard Style="padding: 20px;">
+                                    <h3>UNDER CONSTRUCTION</h3>
+                                    <br />
+                                    <h3>Registry Address:</h3>
+                                    <RadzenTextBox @bind-Value="@registryAddress" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
+                                    <br />
+                                    <h3>RuleTree ID (i.e., Sender Address):</h3>
+                                    <RadzenTextBox @bind-Value="@deploySender" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
+                                    <br />
+                                    <h3>Grove:</h3>
+                                    <RadzenTextBox @bind-Value="@groveName" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
+                                    <br />
+                                    <RadzenButton Text="Add" Click="@((args) => AddToRegistryHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
+                                    <br />
+                                    <h3>Add to Registry Report:</h3>
+                                    <RadzenTextArea @bind-Value="@addToRegistryMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
+                                </RadzenCard>
+                            </RadzenTabsItem>
+                        </Tabs>
 					</RadzenTabs>
 				</RadzenTabsItem>
             </Tabs>
@@ -274,8 +293,11 @@ Use this utility to view/edit your Wonka RuleTree.
 
 	string deploySender       = "0x12890D2cce102216644c59daE5baed380d84830c";
 	string deployPassword     = "0xb5b1870957d373ef0eeffecc6e4812c0fd08f554b37b233526acc331bf1544f7";
+	string registryAddress    = "";
+	string groveName          = "";
 	string deployMsg          = "Warning!  Deployment of the RuleTree to chain will take several seconds.  Please be patient.";
 	string reportMsgFromChain = "Warning!  Execution of the RuleTree on chain will take several seconds.  Please be patient.";
+	string addToRegistryMsg   = "Warning!  Adding to the Registry on chain will take several seconds.  Please be patient.";
 
 	string altRulesUrl    = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_VAT_RULES_FILE_IPFS_KEY);
 	string altMetadataUrl = String.Format("{0}/{1}", CONST_INFURA_IPFS_GATEWAY_URL, CONST_VAT_METADATA_FILE_IPFS_KEY);
@@ -285,7 +307,7 @@ Use this utility to view/edit your Wonka RuleTree.
 
 	WonkaBizRuleSet currRuleSet = null;
 
-	Wonka.Eth.Init.WonkaEthEngineInitialization currEngineInit = null;
+	Wonka.Eth.Init.WonkaEthEngineInitialization currEngineInit = new Wonka.Eth.Init.WonkaEthEngineInitialization();
 
 	IEnumerable<string> entries = null;
 
@@ -598,7 +620,44 @@ Use this utility to view/edit your Wonka RuleTree.
 
 	#region Run Engine Handlers
 
-	// NOTE: This method may take 15-30 seconds to complete
+	// NOTE: This method may take 10-30 seconds to complete
+	void AddToRegistryHandler(MouseEventArgs args, string name)
+	{
+		try
+		{
+			if (!String.IsNullOrEmpty(currEngineInit.RulesEngineContractAddress) &&
+				!String.IsNullOrEmpty(currEngineInit.RegistryContractAddress))
+			{
+				bool bOwnsRuleTree =
+					currEngineInit.OwnsRuleTree(currEngineInit.EthSenderAddress).Result;
+
+				if (bOwnsRuleTree)
+				{
+					// NOTE: Add RuleTree to Registry on Ethereum blockchain		    
+					// reportMsgFromChain = currEngineInit.ExecuteOnChain().Result;
+				}
+				else
+				{
+					throw new Exception("ERROR!  Sender (" + currEngineInit.EthSenderAddress + ") does not own a RuleTree to execute");
+				}
+			}
+			else
+			{
+				throw new Exception("ERROR!  Contract(s) need to be deployed before execution.");
+			}
+
+			StateHasChanged();
+
+			ShowEngineSuccessDialog().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			currErrMsg = ex.Message;
+			ShowErrorDialog().ConfigureAwait(false);
+		}
+	}
+
+	// NOTE: This method may take 10-30 seconds to complete
 	void ExecuteOnChainHandler(MouseEventArgs args, string name)
 	{
 		try
@@ -643,7 +702,7 @@ Use this utility to view/edit your Wonka RuleTree.
 		}
 	}
 
-	// NOTE: This method may take 15-30 seconds to complete
+	// NOTE: This method may take 10-30 seconds to complete
 	void DeployToChainHandler(MouseEventArgs args, string name)
 	{
 		try
