@@ -15,6 +15,7 @@ using Nethereum.Web3;
 
 using Wonka.BizRulesEngine;
 using Wonka.BizRulesEngine.Reporting;
+using Wonka.Eth.Autogen.WonkaRegistry;
 using Wonka.Eth.Autogen.WonkaEngine;
 using Wonka.Eth.Extensions;
 using Wonka.Eth.Init;
@@ -59,6 +60,23 @@ namespace WonkaRulesBlazorEditor.Extensions
 		public const string CONST_VAT_METADATA_FILE_IPFS_KEY  = "QmagCzTxsrbPWwze3pDhVpYeWYB9E2LFk1FNqUngFyZqSN";
 
 		#endregion
+
+		public static async Task<string> AddToRegistry(this WonkaEthEngineInitialization poEthEngineInit, string psGroveId)
+		{
+			var RegistryContractHandler =
+				GetWeb3(poEthEngineInit.EthPassword, poEthEngineInit.Web3HttpUrl).Eth.GetContractHandler(poEthEngineInit.RegistryContractAddress);
+
+			var bytesTreeId  = ASCIIEncoding.ASCII.GetBytes(poEthEngineInit.EthSenderAddress);
+			var bytesGroveId = ASCIIEncoding.ASCII.GetBytes(psGroveId);
+
+			var AddToRegistryFunction =
+				new AddRuleTreeToGroveFunction() { GroveId = bytesGroveId, TreeId = bytesTreeId };
+
+			var addToRegReceipt =
+				await RegistryContractHandler.SendRequestAndWaitForReceiptAsync(AddToRegistryFunction, null).ConfigureAwait(false);
+
+			return addToRegReceipt.TransactionHash;
+		}
 
 		/*
 		 * NOTE: This type of custom rule works to assign something to the target attribute, like normal custom operators -

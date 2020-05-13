@@ -218,17 +218,18 @@ Use this utility to view/edit your Wonka RuleTree.
                                     <RadzenTextArea @bind-Value="@reportMsgFromChain" Cols="50" Rows="4" Style="margin-bottom: 20px" />
                                 </RadzenCard>
                             </RadzenTabsItem>
-                            <RadzenTabsItem Text="Add to Registry">
+                            <RadzenTabsItem Text="On Chain (Registry)">
                                 <RadzenCard Style="padding: 20px;">
-                                    <h3>UNDER CONSTRUCTION</h3>
-                                    <br />
                                     <h3>Registry Address:</h3>
                                     <RadzenTextBox @bind-Value="@registryAddress" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
                                     <br />
                                     <h3>RuleTree ID (i.e., Sender Address):</h3>
                                     <RadzenTextBox @bind-Value="@deploySender" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
                                     <br />
-                                    <h3>Grove:</h3>
+                                    <h3>RuleTree Description:</h3>
+                                    <RadzenTextBox @bind-Value="@ruleTreeDesc" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
+                                    <br />
+                                    <h3>Grove ID:</h3>
                                     <RadzenTextBox @bind-Value="@groveName" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
                                     <br />
                                     <RadzenButton Text="Add" Click="@((args) => AddToRegistryHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
@@ -294,6 +295,7 @@ Use this utility to view/edit your Wonka RuleTree.
 	string deploySender       = "0x12890D2cce102216644c59daE5baed380d84830c";
 	string deployPassword     = "0xb5b1870957d373ef0eeffecc6e4812c0fd08f554b37b233526acc331bf1544f7";
 	string registryAddress    = "";
+	string ruleTreeDesc       = "";
 	string groveName          = "";
 	string deployMsg          = "Warning!  Deployment of the RuleTree to chain will take several seconds.  Please be patient.";
 	string reportMsgFromChain = "Warning!  Execution of the RuleTree on chain will take several seconds.  Please be patient.";
@@ -633,8 +635,12 @@ Use this utility to view/edit your Wonka RuleTree.
 
 				if (bOwnsRuleTree)
 				{
-					// NOTE: Add RuleTree to Registry on Ethereum blockchain		    
-					// reportMsgFromChain = currEngineInit.ExecuteOnChain().Result;
+					// NOTE: Add RuleTree to Registry on Ethereum blockchain
+					// NOTE: Not yet tested
+
+					// reportMsgFromChain = currEngineInit.AddToRegistry(groveName).Result;
+
+					addToRegistryMsg = "SUCCESS!  RuleTree was added to the registry.";
 				}
 				else
 				{
