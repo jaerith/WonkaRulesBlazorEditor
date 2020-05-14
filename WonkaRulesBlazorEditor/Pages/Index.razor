@@ -207,7 +207,7 @@ Use this utility to view/edit your Wonka RuleTree.
                                     <br />
                                     <RadzenButton Text="Deploy" Click="@((args) => DeployToChainHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                                     <br />
-                                    <RadzenProgressBar Visible="false" @bind-Value="@(ProgressBarValues.DeployProgressBar)" Style="margin-bottom: 20px" />
+                                    <RadzenProgressBar Visible="@deployBarVisible" @bind-Value="@(ProgressBarValues.DeployProgressBar)" Style="margin-bottom: 20px" />
                                     <h3>Deploy Report:</h3>
                                     <RadzenTextArea @bind-Value="@deployMsg" Cols="50" Rows="4" Style="margin-bottom: 20px" />
                                     <br />
@@ -223,14 +223,11 @@ Use this utility to view/edit your Wonka RuleTree.
                                     <h3>Registry Address:</h3>
                                     <RadzenTextBox @bind-Value="@registryAddress" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
                                     <br />
-                                    <h3>RuleTree ID (i.e., Sender Address):</h3>
-                                    <RadzenTextBox @bind-Value="@deploySender" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
-                                    <br />
-                                    <h3>RuleTree Description:</h3>
-                                    <RadzenTextBox @bind-Value="@ruleTreeDesc" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
-                                    <br />
                                     <h3>Grove ID:</h3>
                                     <RadzenTextBox @bind-Value="@groveName" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
+                                    <br />
+                                    <h3>Grove Description:</h3>
+                                    <RadzenTextBox @bind-Value="@groveDesc" Style="margin-bottom: 10px; width: 400px" MaxLength="1024" />
                                     <br />
                                     <RadzenButton Text="Add" Click="@((args) => AddToRegistryHandler(args, "Button with text"))" Style="margin-bottom: 10px; width: 150px" />
                                     <br />
@@ -292,11 +289,13 @@ Use this utility to view/edit your Wonka RuleTree.
 	string currErrMsg      = "";
 	string currXml         = "";
 
+	bool   deployBarVisible   = false;
 	string deploySender       = "0x12890D2cce102216644c59daE5baed380d84830c";
 	string deployPassword     = "0xb5b1870957d373ef0eeffecc6e4812c0fd08f554b37b233526acc331bf1544f7";
 	string registryAddress    = "";
 	string ruleTreeDesc       = "";
 	string groveName          = "";
+	string groveDesc          = "";
 	string deployMsg          = "Warning!  Deployment of the RuleTree to chain will take several seconds.  Please be patient.";
 	string reportMsgFromChain = "Warning!  Execution of the RuleTree on chain will take several seconds.  Please be patient.";
 	string addToRegistryMsg   = "Warning!  Adding to the Registry on chain will take several seconds.  Please be patient.";
@@ -633,12 +632,13 @@ Use this utility to view/edit your Wonka RuleTree.
 				bool bOwnsRuleTree =
 					currEngineInit.OwnsRuleTree(currEngineInit.EthSenderAddress).Result;
 
+				if (String.IsNullOrEmpty(groveName))
+					throw new Exception("ERROR!  Grove Name needs to be provided.");
+
 				if (bOwnsRuleTree)
 				{
 					// NOTE: Add RuleTree to Registry on Ethereum blockchain
-					// NOTE: Not yet tested
-
-					// reportMsgFromChain = currEngineInit.AddToRegistry(groveName).Result;
+					reportMsgFromChain = currEngineInit.AddToRegistry(groveName, groveDesc).Result;
 
 					addToRegistryMsg = "SUCCESS!  RuleTree was added to the registry.";
 				}
@@ -734,6 +734,8 @@ Use this utility to view/edit your Wonka RuleTree.
 			deployMsg = currEngineInit.GetDeploymentReport().Result;
 
 			ProgressBarValues.DeployProgressBar = 100;
+
+			registryAddress = currEngineInit.RegistryContractAddress;
 
 			StateHasChanged();
 

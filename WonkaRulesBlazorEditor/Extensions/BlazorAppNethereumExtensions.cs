@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
@@ -61,21 +62,64 @@ namespace WonkaRulesBlazorEditor.Extensions
 
 		#endregion
 
-		public static async Task<string> AddToRegistry(this WonkaEthEngineInitialization poEthEngineInit, string psGroveId)
+		public static async Task<string> AddToRegistry(this WonkaEthEngineInitialization poEthEngineInit, string psGroveId, string psGroveDesc)
 		{
+			var bytesTreeId   = ASCIIEncoding.ASCII.GetBytes(poEthEngineInit.Engine.RulesEngine.DetermineRuleTreeChainID());
+			var bytesGroveId  = ASCIIEncoding.ASCII.GetBytes(psGroveId);
+
 			var RegistryContractHandler =
 				GetWeb3(poEthEngineInit.EthPassword, poEthEngineInit.Web3HttpUrl).Eth.GetContractHandler(poEthEngineInit.RegistryContractAddress);
 
-			var bytesTreeId  = ASCIIEncoding.ASCII.GetBytes(poEthEngineInit.EthSenderAddress);
-			var bytesGroveId = ASCIIEncoding.ASCII.GetBytes(psGroveId);
+			BigInteger CreationTime = new BigInteger(DateTime.Now.ToEpochTime());
 
+			// Add Grove to the Registry first
+			try
+			{
+				var AddGroveFunction
+					= new AddRuleGroveFunction() { GroveId = bytesGroveId, Desc = psGroveDesc, GroveOwner = poEthEngineInit.EthSenderAddress, CreateTime = CreationTime };
+
+				var addGroveToRegReceipt =
+					await RegistryContractHandler.SendRequestAndWaitForReceiptAsync(AddGroveFunction, null).ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				// NOTE: Should be addressed in the future
+			}
+
+			// Add RuleTree to the Registry next
+			List<byte[]> bytesOpList = new List<byte[]>();
+
+			poEthEngineInit.Engine.RulesEngine.CustomOpMap.Keys.ToList().ForEach(x => bytesOpList.Add(ASCIIEncoding.ASCII.GetBytes(x)));
+
+			var AddRuleTreeFunction
+				= new AddRuleTreeIndexFunction() { RsId = bytesTreeId,
+					                                Desc = "General Description",
+													RuleTreeGrpId = bytesGroveId,
+													GrpIdx = 1,													   
+													Ruler = poEthEngineInit.EthSenderAddress,
+													Host = "",
+													Attributes = new List<byte[]>(),
+													Associates = new List<string>(),
+													MinCost = poEthEngineInit.Engine.RulesEngine.CalculateMinGasEstimate(),
+													MaxCost = poEthEngineInit.Engine.RulesEngine.CalculateMaxGasEstimate(),
+													Ops = bytesOpList,
+													CreateTime = CreationTime };
+
+			var addTreeToRegReceipt =
+				await RegistryContractHandler.SendRequestAndWaitForReceiptAsync(AddRuleTreeFunction, null).ConfigureAwait(false);
+
+			/**
+			 ** NOTE: Not needed for now
+			 **
+			// Add RuleTree to the Grove in the Registry
 			var AddToRegistryFunction =
 				new AddRuleTreeToGroveFunction() { GroveId = bytesGroveId, TreeId = bytesTreeId };
 
-			var addToRegReceipt =
+			var addTreeToGroveReceipt =
 				await RegistryContractHandler.SendRequestAndWaitForReceiptAsync(AddToRegistryFunction, null).ConfigureAwait(false);
+			 **/
 
-			return addToRegReceipt.TransactionHash;
+			return addTreeToRegReceipt.TransactionHash;
 		}
 
 		/*
